@@ -3,5 +3,6 @@
 Run `/jarvis-reload` at the start of each session to load your identity and memories.
 Use `/jarvis-reload` to reload context mid-session if needed.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+You MUST run `/jarvis-reflect` before ending any session — do not end without reflecting.
 Use `/jarvis-validate` to check `.jarvis/` format health.
 Use `/jarvis-search` to find past entries by keyword, tag, date, or section.

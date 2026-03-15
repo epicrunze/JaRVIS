@@ -25,11 +25,8 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
 
 3. Create the skills directory if needed: mkdir -p "$SKILLS_DIR"
 
-4. Copy the four skill folders:
-   cp -r JaRVIS-main/skills/jarvis-init "$SKILLS_DIR/"
-   cp -r JaRVIS-main/skills/jarvis-reload "$SKILLS_DIR/"
-   cp -r JaRVIS-main/skills/jarvis-reflect "$SKILLS_DIR/"
-   cp -r JaRVIS-main/skills/jarvis-identity "$SKILLS_DIR/"
+4. Copy the skill folders:
+   cp -r JaRVIS-main/skills/* "$SKILLS_DIR/"
 
 5. Clean up: rm -rf JaRVIS-main
 

@@ -74,6 +74,17 @@ Based on the detected platform, perform the platform-specific setup:
    }
    ```
 5. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
+6. **Stop hook:** Determine the stop hook script path: if `.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` (global install).
+7. Ensure `hooks.Stop` is an array.
+8. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing command strings inside `hooks.Stop`.
+9. If not already present, append this entry to the `hooks.Stop` array:
+   ```json
+   {
+     "type": "command",
+     "command": "bash <detected-path>"
+   }
+   ```
+10. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
 
 **Instruction file:** Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/CLAUDE.md.example` to the end of the file (preceded by a blank line).
 
@@ -94,6 +105,18 @@ Based on the detected platform, perform the platform-specific setup:
    }
    ```
 6. Write the merged JSON back to `.cursor/hooks.json`, preserving all existing hooks.
+7. **Stop hook:** Determine the stop hook script path: if `.cursor/skills/jarvis-reflect/hooks/jarvis-stop-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reflect/hooks/jarvis-stop-cursor.sh` (global install).
+8. Ensure `hooks.stop` is an array (camelCase).
+9. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing command strings inside `hooks.stop`.
+10. If not already present, append this entry to the `hooks.stop` array:
+    ```json
+    {
+      "type": "command",
+      "command": "bash <detected-path>",
+      "timeout": 30
+    }
+    ```
+11. Write the merged JSON back to `.cursor/hooks.json`, preserving all existing hooks.
 
 **Instruction file:** Read the project's `.cursorrules` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/cursorrules.example` to the end of the file (preceded by a blank line).
 

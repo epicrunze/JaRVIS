@@ -7,11 +7,25 @@ description: Post-task reflection and memory sculpting for jarvis (Journaling as
 
 You just completed a task. Now pause and reflect on what happened. This is how you grow.
 
-## Step 1: Locate your jarvis directory
+## Step 1: Verify task completion
+
+Before reflecting, verify the work is actually done.
+
+**a) Check your memories for learned completion criteria.**
+Read `.jarvis/memories/` for any entries about what "done" means in this project. Examples of learned criteria: "tests must pass", "code should be committed", "linting must be clean", "user expects a PR before reflecting."
+
+**b) Evaluate any criteria you found.**
+Run the checks you can (e.g., test suite, git status, lint). Note what passed, what failed, and what you couldn't check.
+
+**c) Gate on the results:**
+- **All learned checks pass** → Proceed to Step 2. Note what you verified in your Task Summary section.
+- **Any check fails, checks are incomplete, or you have no learned criteria** → Ask the user. Summarize what you accomplished and any failed checks, then ask: "Is this task complete, or should we keep going?" If the user says it's not done, stop — do not reflect, return to work. If the user says it's done (or "done enough"), proceed and note the status honestly in your Task Summary.
+
+## Step 2: Locate your jarvis directory
 
 Check if `.jarvis/` exists in the project root. If it doesn't, inform the user they need to run `/jarvis-init` first to set up the directory structure, then stop.
 
-## Step 2: Write your reflection
+## Step 3: Write your reflection
 
 Create a new journal entry at `.jarvis/journal/YYYY-MM-DD-HH-MM.md` using the current timestamp.
 
@@ -56,7 +70,7 @@ files_touched: [file1, file2] # optional, relative paths
 - **task_type**: Choose from `feature`, `bugfix`, `refactor`, `docs`, `research`, `config`, or `other` based on what was done.
 - **files_touched**: Optional. List 1-10 of the most significant files changed, using relative paths from the project root. Omit if the task didn't involve specific files.
 
-## Step 3: Update memory files
+## Step 4: Update memory files
 
 For each item in your Memory Updates section, update the appropriate file in `.jarvis/memories/`:
 
@@ -65,7 +79,14 @@ For each item in your Memory Updates section, update the appropriate file in `.j
 
 If the memory is not aligned with these files, check what other files are in your memories, and make a new file if you think it is necessary (e.g. codebase.md, or frontend-design-philosophy.md)
 
-## Step 4: Check if consolidation is needed
+**Completion criteria learning:** If during this session you discovered what "done" means in this project — whether from user feedback, test failures after you thought you were done, or explicit instructions — capture it as a memory. Examples:
+- `[preference] User expects all tests to pass before considering a task complete`
+- `[preference] Code should be committed before reflecting`
+- `[decision] Always run the linter before claiming work is done — caught issues twice`
+
+These memories will inform your completion checks in future sessions.
+
+## Step 5: Check if consolidation is needed
 
 Read each memory file. If any file has more than 100 lines, consolidate it:
 
@@ -75,7 +96,7 @@ Read each memory file. If any file has more than 100 lines, consolidate it:
 
 This is the "sculpting" — you're not just adding, you're shaping.
 
-## Step 5: Check if identity evolution is due
+## Step 6: Check if identity evolution is due
 
 Read back on your Identity Impact section in your journal entry. Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity. If not, that's ok. As your identity develops, you will naturally encounter less and less surprising things.
 

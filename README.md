@@ -6,12 +6,14 @@ A set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity t
 
 ## What it does
 
-JaRVIS adds four skills to your AI coding agent:
+JaRVIS adds six skills to your AI coding agent:
 
 - **`/jarvis-init`** — Scaffold the `.jarvis/` directory in your project (run once)
 - **`/jarvis-reload`** — Reload your agent's identity and memories (automatic on session start for platforms with hooks, manual otherwise)
 - **`/jarvis-reflect`** — Structured post-task reflection that captures lessons, updates memories, and logs what happened
 - **`/jarvis-identity`** — Evolve the agent's identity document based on accumulated experience
+- **`/jarvis-validate`** — Check `.jarvis/` artifacts for format correctness
+- **`/jarvis-search`** — Search past entries by keyword, tag, date range, or section
 
 Everything lives in a `.jarvis/` directory in your project:
 
@@ -60,11 +62,8 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
 
 3. Create the skills directory if needed: mkdir -p "$SKILLS_DIR"
 
-4. Copy the four skill folders:
-   cp -r JaRVIS-main/skills/jarvis-init "$SKILLS_DIR/"
-   cp -r JaRVIS-main/skills/jarvis-reload "$SKILLS_DIR/"
-   cp -r JaRVIS-main/skills/jarvis-reflect "$SKILLS_DIR/"
-   cp -r JaRVIS-main/skills/jarvis-identity "$SKILLS_DIR/"
+4. Copy the skill folders:
+   cp -r JaRVIS-main/skills/* "$SKILLS_DIR/"
 
 5. Clean up: rm -rf JaRVIS-main
 
@@ -80,10 +79,7 @@ Copy the skill folders into your platform's skills directory:
 #### Claude Code
 
 ```bash
-cp -r skills/jarvis-init .claude/skills/jarvis-init
-cp -r skills/jarvis-reload .claude/skills/jarvis-reload
-cp -r skills/jarvis-reflect .claude/skills/jarvis-reflect
-cp -r skills/jarvis-identity .claude/skills/jarvis-identity
+cp -r skills/* .claude/skills/
 ```
 
 Global install (all projects): copy to `~/.claude/skills/` instead.
@@ -91,28 +87,19 @@ Global install (all projects): copy to `~/.claude/skills/` instead.
 #### Cursor
 
 ```bash
-cp -r skills/jarvis-init .cursor/skills/jarvis-init
-cp -r skills/jarvis-reload .cursor/skills/jarvis-reload
-cp -r skills/jarvis-reflect .cursor/skills/jarvis-reflect
-cp -r skills/jarvis-identity .cursor/skills/jarvis-identity
+cp -r skills/* .cursor/skills/
 ```
 
 #### GitHub Copilot
 
 ```bash
-cp -r skills/jarvis-init .github/skills/jarvis-init
-cp -r skills/jarvis-reload .github/skills/jarvis-reload
-cp -r skills/jarvis-reflect .github/skills/jarvis-reflect
-cp -r skills/jarvis-identity .github/skills/jarvis-identity
+cp -r skills/* .github/skills/
 ```
 
 #### Antigravity
 
 ```bash
-cp -r skills/jarvis-init .agent/skills/jarvis-init
-cp -r skills/jarvis-reload .agent/skills/jarvis-reload
-cp -r skills/jarvis-reflect .agent/skills/jarvis-reflect
-cp -r skills/jarvis-identity .agent/skills/jarvis-identity
+cp -r skills/* .agent/skills/
 ```
 
 ### Add to your instruction file
@@ -127,6 +114,17 @@ Add the JaRVIS section to your platform's instruction file. See the example file
 | Antigravity | `AGENTS.md` | `skills/jarvis-init/references/AGENTS.md.example` |
 
 Then run `/jarvis-init` to scaffold the `.jarvis/` directory. The init skill will detect your platform and configure things automatically.
+
+## Hooks
+
+JaRVIS includes hook scripts that automate context loading and reflection reminders. `/jarvis-init` configures these automatically during setup.
+
+- **SessionStart** (`jarvis-session-start.sh` / `jarvis-session-start-cursor.sh`) — Automatically loads your agent's identity, consolidated memories, and recent journal entries at the start of each session.
+- **Stop** (`jarvis-stop.sh` / `jarvis-stop-cursor.sh`) — Reminds the agent to run `/jarvis-reflect` before ending its turn if no reflection was captured during the session.
+
+Hook scripts live inside the skill directories (`jarvis-reload/hooks/` and `jarvis-reflect/hooks/`) and are referenced by your platform's hook configuration.
+
+> **Note:** Not all platforms support hooks. On platforms without hook support, use `/jarvis-reload` manually at session start.
 
 ## Usage
 
@@ -143,6 +141,7 @@ Then run `/jarvis-init` to scaffold the `.jarvis/` directory. The init skill wil
 2. Work normally
 3. `/jarvis-reflect` after completing tasks
 4. Every 5 reflections, `/jarvis-identity` evolves the identity document
+5. Use `/jarvis-validate` to check artifact formatting and `/jarvis-search` to find past entries
 
 ### The loop
 

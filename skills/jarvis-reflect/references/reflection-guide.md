@@ -90,6 +90,16 @@ Only persist things worth remembering long-term. Not every observation is a memo
 - Temporary state ("currently working on X")
 - Obvious facts ("TypeScript uses .ts extension")
 
+## Completion Verification
+
+Document how you verified the work was done. Vague claims of completion without evidence are a red flag.
+
+**Bad**: "Task was completed" (no verification)
+**Good**: "Verified: tests pass (42/42), changes committed (abc1234), lint clean. User confirmed feature works as expected."
+**Good (partial)**: "Tests pass but user noted edge case X still needs handling. Reflecting on completed portion — edge case tracked for next session."
+
+The test: could a reviewer confirm the work is done based on your verification notes alone?
+
 ## Identity Impact
 
 Most tasks don't change your identity. That's fine. Say so.
