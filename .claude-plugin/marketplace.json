@@ -10,8 +10,8 @@
       "description": "Post-task reflection, memory sculpting, and self-evolving agent identity",
       "version": "0.1.0",
       "source": {
-        "source": "github",
-        "repo": "epicrunze/JaRVIS"
+        "source": "url",
+        "url": "https://github.com/epicrunze/JaRVIS.git"
       },
       "category": "productivity",
       "tags": ["memory", "reflection", "identity", "agent", "journaling"]
