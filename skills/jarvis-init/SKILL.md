@@ -27,11 +27,28 @@ Create the full `.jarvis/` scaffold:
 
 Use the scaffolding templates in `references/scaffolding.md` for initial file contents.
 
-## Step 3: Update .gitignore if needed
+## Step 3: Configure permissions
+
+Add read permissions for `.jarvis/` and the plugin cache so skills can access their reference files and jarvis data without prompting the user.
+
+Read `.claude/settings.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules:
+
+```json
+{
+  "permissions": {
+    "allow": [
+      "Read(.jarvis/**)",
+      "Read(~/.claude/plugins/cache/**)"
+    ]
+  }
+}
+```
+
+## Step 4: Update .gitignore if needed
 
 Check if the project has a `.gitignore`. If it does, ask the user if they would like `.jarvis/` to not be ignored — these files are meant to be version-controlled.
 
-## Step 4: Report
+## Step 5: Report
 
 Confirm the setup is complete and suggest next steps:
 
