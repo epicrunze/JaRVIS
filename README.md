@@ -32,24 +32,33 @@ All files are markdown. All files are git-trackable. Your agent's growth is visi
 
 ## Install
 
-### Option A: Project-level (recommended)
+### Option A: Plugin (recommended)
+
+Install JaRVIS as a Claude Code plugin:
+
+```bash
+/plugin marketplace add epicrunze/JaRVIS
+/plugin install jarvis@jarvis-marketplace
+```
+
+### Option B: Manual (project-level)
 
 Copy the skill folders into your project:
 
 ```bash
-cp -r jarvis-init .claude/skills/jarvis-init
-cp -r jarvis-start .claude/skills/jarvis-start
-cp -r jarvis-reflect .claude/skills/jarvis-reflect
-cp -r jarvis-identity .claude/skills/jarvis-identity
+cp -r skills/jarvis-init .claude/skills/jarvis-init
+cp -r skills/jarvis-start .claude/skills/jarvis-start
+cp -r skills/jarvis-reflect .claude/skills/jarvis-reflect
+cp -r skills/jarvis-identity .claude/skills/jarvis-identity
 ```
 
-### Option B: Global (all projects)
+### Option C: Manual (global, all projects)
 
 ```bash
-cp -r jarvis-init ~/.claude/skills/jarvis-init
-cp -r jarvis-start ~/.claude/skills/jarvis-start
-cp -r jarvis-reflect ~/.claude/skills/jarvis-reflect
-cp -r jarvis-identity ~/.claude/skills/jarvis-identity
+cp -r skills/jarvis-init ~/.claude/skills/jarvis-init
+cp -r skills/jarvis-start ~/.claude/skills/jarvis-start
+cp -r skills/jarvis-reflect ~/.claude/skills/jarvis-reflect
+cp -r skills/jarvis-identity ~/.claude/skills/jarvis-identity
 ```
 
 ### Add to CLAUDE.md
