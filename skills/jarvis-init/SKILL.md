@@ -64,24 +64,34 @@ Based on the detected platform, perform the platform-specific setup:
 **Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.json` (the same file from the permissions step):
 
 1. Determine the hook script path: if `.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` (global install).
-2. Ensure the `hooks` object exists in the settings JSON. Ensure `hooks.SessionStart` is an array.
-3. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing command strings inside `hooks.SessionStart`.
+2. Ensure the `hooks` object exists in the settings JSON. Ensure `hooks.SessionStart` is an array. Each entry in `hooks.SessionStart` must be an object with `matcher` (string) and `hooks` (array) keys.
+3. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing `hooks.SessionStart` entries' `hooks` sub-array command strings.
 4. If not already present, append this entry to the `hooks.SessionStart` array:
    ```json
    {
-     "type": "command",
-     "command": "bash <detected-path>"
+     "matcher": "",
+     "hooks": [
+       {
+         "type": "command",
+         "command": "bash <detected-path>"
+       }
+     ]
    }
    ```
 5. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
 6. **Stop hook:** Determine the stop hook script path: if `.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` (global install).
-7. Ensure `hooks.Stop` is an array.
-8. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing command strings inside `hooks.Stop`.
+7. Ensure `hooks.Stop` is an array. Each entry must be an object with `matcher` (string) and `hooks` (array) keys.
+8. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing `hooks.Stop` entries' `hooks` sub-array command strings.
 9. If not already present, append this entry to the `hooks.Stop` array:
    ```json
    {
-     "type": "command",
-     "command": "bash <detected-path>"
+     "matcher": "",
+     "hooks": [
+       {
+         "type": "command",
+         "command": "bash <detected-path>"
+       }
+     ]
    }
    ```
 10. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
