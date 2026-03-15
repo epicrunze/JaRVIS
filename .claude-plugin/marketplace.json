@@ -1,0 +1,20 @@
+{
+  "name": "jarvis-marketplace",
+  "version": "1.0.0",
+  "owner": {
+    "name": "epicrunze"
+  },
+  "plugins": [
+    {
+      "name": "jarvis",
+      "description": "Post-task reflection, memory sculpting, and self-evolving agent identity. Adds /jarvis-init, /jarvis-reflect, and /jarvis-identity skills.",
+      "version": "0.1.0",
+      "source": {
+        "source": "git",
+        "repo": "epicrunze/jarvis"
+      },
+      "category": "productivity",
+      "tags": ["memory", "reflection", "identity", "agent", "journaling"]
+    }
+  ]
+}

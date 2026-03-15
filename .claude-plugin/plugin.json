@@ -1,0 +1,13 @@
+{
+  "name": "jarvis",
+  "version": "0.1.0",
+  "description": "JaRVIS: Journaling As Recurrent Versioned Identity Sculpting. Post-task reflection, memory sculpting, and self-evolving agent identity — stored as markdown in your repo.",
+  "author": {
+    "name": "epicrunze"
+  },
+  "skills": [
+    "skills/jarvis-reflect",
+    "skills/jarvis-init",
+    "skills/jarvis-identity"
+  ]
+}

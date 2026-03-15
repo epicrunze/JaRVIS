@@ -1,0 +1,4 @@
+## JaRVIS
+
+At the start of each session, run `/jarvis-start` to load your identity and memories from `.jarvis/`.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
