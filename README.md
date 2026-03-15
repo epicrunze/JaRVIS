@@ -41,7 +41,39 @@ Install JaRVIS as a Claude Code plugin:
 /plugin install jarvis@jarvis-marketplace
 ```
 
-### Option B: Manual install
+### Option B: One-prompt install
+
+Paste this prompt into your AI coding agent and let it handle the rest:
+
+```
+Install JaRVIS (https://github.com/epicrunze/JaRVIS) into this project. Follow these steps exactly:
+
+1. Download and extract the JaRVIS repo:
+   curl -sL https://github.com/epicrunze/JaRVIS/archive/refs/heads/main.tar.gz | tar xz
+
+2. Detect the platform and set SKILLS_DIR:
+   - If .claude/ exists → SKILLS_DIR=".claude/skills"
+   - If .cursor/ exists → SKILLS_DIR=".cursor/skills"
+   - If .github/ exists → SKILLS_DIR=".github/skills"
+   - If .agent/ exists or AGENTS.md exists → SKILLS_DIR=".agent/skills"
+   - If none match, ask me which platform I'm using.
+
+3. Create the skills directory if needed: mkdir -p "$SKILLS_DIR"
+
+4. Copy the four skill folders:
+   cp -r JaRVIS-main/skills/jarvis-init "$SKILLS_DIR/"
+   cp -r JaRVIS-main/skills/jarvis-reload "$SKILLS_DIR/"
+   cp -r JaRVIS-main/skills/jarvis-reflect "$SKILLS_DIR/"
+   cp -r JaRVIS-main/skills/jarvis-identity "$SKILLS_DIR/"
+
+5. Clean up: rm -rf JaRVIS-main
+
+6. Run /jarvis-init to complete setup.
+```
+
+Works with Claude Code, Cursor, GitHub Copilot, and Antigravity. See [`install/PROMPT.md`](install/PROMPT.md) for details.
+
+### Option C: Manual install
 
 Copy the skill folders into your platform's skills directory:
 
