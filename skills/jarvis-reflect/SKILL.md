@@ -1,6 +1,6 @@
 ---
 name: jarvis-reflect
-description: Post-task reflection and memory sculpting for jarvis (Journalling as Recurrent Versioned Identity Sculpting). Use this skill after completing any meaningful task, when the user says "reflect", "what did we learn", "save what we did", "update memories", or after finishing a coding task, debugging session, architecture decision, or any significant unit of work. Also use when the user asks to review or consolidate memories.
+description: Post-task reflection and memory sculpting for jarvis (Journaling as Recurrent Versioned Identity Sculpting). Use this skill after completing any meaningful task, when the user says "reflect", "what did we learn", "save what we did", "update memories", or after finishing a coding task, debugging session, architecture decision, or any significant unit of work. Also use when the user asks to review or consolidate memories.
 ---
 
 # JaRVIS Reflect
@@ -65,7 +65,7 @@ This is the "sculpting" — you're not just adding, you're shaping.
 
 Read back on your Identity Impact section in your journal entry. Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity. If not, that's ok. As your identity develops, you will naturally encounter less and less surprising things.
 
-Count the journal entries in `.jarvis/journal/`. If the count is a multiple of 5, it's time to evolve your identity. 
+Count the journal entries in `.jarvis/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
 
 Invoke `/jarvis-identity` to evolve your identity.
 
