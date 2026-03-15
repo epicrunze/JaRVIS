@@ -1,17 +1,17 @@
-# One-Prompt Install
+# One-Prompt Install / Update
 
-Copy the prompt below and paste it into your AI coding agent (Cursor, GitHub Copilot, Antigravity, or Claude Code) to install JaRVIS in one step.
+Copy the prompt below and paste it into your AI coding agent (Cursor, GitHub Copilot, Antigravity, or Claude Code) to install or update JaRVIS in one step.
 
 ## How to use
 
 1. Open your AI coding agent in the project where you want JaRVIS
 2. Paste the entire prompt below
-3. Let the agent run — it will download, install, and initialize JaRVIS
+3. Let the agent run — it will download and install (or update) JaRVIS
 
 ## The prompt
 
 ```
-Install JaRVIS (https://github.com/epicrunze/JaRVIS) into this project. Follow these steps exactly:
+Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. Follow these steps exactly:
 
 1. Download and extract the JaRVIS repo:
    curl -sL https://github.com/epicrunze/JaRVIS/archive/refs/heads/main.tar.gz | tar xz
@@ -33,7 +33,7 @@ Install JaRVIS (https://github.com/epicrunze/JaRVIS) into this project. Follow t
 
 5. Clean up: rm -rf JaRVIS-main
 
-6. Run /jarvis-init to complete setup.
+6. If the .jarvis/ directory does NOT already exist, run /jarvis-init to complete setup. If .jarvis/ already exists, skip this step — the update is complete.
 ```
 
 > **Global install (Claude Code only):** To install JaRVIS for all projects, tell the agent to use `SKILLS_DIR="$HOME/.claude/skills"` instead of detecting the platform.

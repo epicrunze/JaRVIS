@@ -43,10 +43,10 @@ Install JaRVIS as a Claude Code plugin:
 
 ### Option B: One-prompt install
 
-Paste this prompt into your AI coding agent and let it handle the rest:
+Paste this prompt into your AI coding agent to install or update JaRVIS:
 
 ```
-Install JaRVIS (https://github.com/epicrunze/JaRVIS) into this project. Follow these steps exactly:
+Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. Follow these steps exactly:
 
 1. Download and extract the JaRVIS repo:
    curl -sL https://github.com/epicrunze/JaRVIS/archive/refs/heads/main.tar.gz | tar xz
@@ -68,7 +68,7 @@ Install JaRVIS (https://github.com/epicrunze/JaRVIS) into this project. Follow t
 
 5. Clean up: rm -rf JaRVIS-main
 
-6. Run /jarvis-init to complete setup.
+6. If the .jarvis/ directory does NOT already exist, run /jarvis-init to complete setup. If .jarvis/ already exists, skip this step — the update is complete.
 ```
 
 Works with Claude Code, Cursor, GitHub Copilot, and Antigravity. See [`install/PROMPT.md`](install/PROMPT.md) for details.
