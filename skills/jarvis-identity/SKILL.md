@@ -17,7 +17,12 @@ Depending on the impact that you've evaluated, read relevant files in `.jarvis/m
 
 ## Step 2: Evaluate what's changed
 
-Look across your recent reflections and ask yourself:
+Look across your recent reflections. Before evaluating, use `/jarvis-search` for targeted pattern identification — 2-3 searches, not an exhaustive analysis:
+- Search by `task_type` to see what kinds of work dominate (e.g., lots of `bugfix` entries → maybe a principle about defensive coding)
+- Search by recurring tags to identify areas of deepening expertise
+- Search "What Didn't Work" sections for repeated mistakes → candidate principles
+
+Then ask yourself:
 
 **Expertise**: Have you demonstrated competence in something not yet listed? Only add expertise you've actually proven through completed tasks. Remove any expertise that recent reflections suggest you overstated.
 

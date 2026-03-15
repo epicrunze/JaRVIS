@@ -29,6 +29,13 @@ Check if `.jarvis/` exists in the project root. If it doesn't, inform the user t
 
 Create a new journal entry at `.jarvis/journal/YYYY-MM-DD-HH-MM.md` using the current timestamp.
 
+**Before writing**, identify the tags and task_type you'll assign to this entry, then use `/jarvis-search` to search past journal entries for related work using those tags. If matches exist, review the "Lessons Learned" and "What Didn't Work" sections from those entries. Use this to:
+- Avoid re-learning the same lessons — reference prior experience instead
+- Note if you applied (or failed to apply) a previously learned lesson
+- Build on past insights rather than writing from scratch
+
+This is a lightweight step — if no relevant past entries exist or on a fresh setup with no journals, skip it and proceed.
+
 Fill in every section honestly. Read `references/reflection-guide.md` for detailed guidance on what makes a good vs bad reflection entry. The format is:
 
 ```markdown
@@ -96,7 +103,11 @@ Read each memory file. If any file has more than 100 lines, consolidate it:
 
 This is the "sculpting" — you're not just adding, you're shaping.
 
-## Step 6: Check if identity evolution is due
+## Step 6: Validate your work
+
+Invoke `/jarvis-validate` to check that the journal entry you just wrote and any memory files you updated are well-formed. If there are failures, fix them before proceeding. Don't report validation details to the user unless something failed.
+
+## Step 7: Check if identity evolution is due
 
 Read back on your Identity Impact section in your journal entry. There are two conditions to evolve your identity, if either of them are met, then invoke `/jarvis-identity` to evolve your identity. 
 
@@ -112,4 +123,5 @@ After completing all steps, report:
 - Journal entry path
 - Number of memories updated
 - Whether consolidation happened
+- Whether validation passed (only if it failed)
 - Whether identity evolution is due
