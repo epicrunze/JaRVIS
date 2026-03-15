@@ -1,0 +1,5 @@
+## JaRVIS
+
+Run `/jarvis-reload` at the start of each session to load your identity and memories.
+Use `/jarvis-reload` to reload context mid-session if needed.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.

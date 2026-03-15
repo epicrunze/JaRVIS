@@ -27,11 +27,28 @@ Create the full `.jarvis/` scaffold:
 
 Use the scaffolding templates in `references/scaffolding.md` for initial file contents.
 
-## Step 3: Configure permissions
+## Step 3: Detect platform
 
-Add read permissions for `.jarvis/` and the plugin cache so skills can access their reference files and jarvis data without prompting the user.
+Determine which AI coding agent platform is running. Check for these signals in order:
 
-Read `.claude/settings.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules:
+| Signal | Platform |
+|--------|----------|
+| `CLAUDE_PROJECT_DIR` env var or `.claude/` directory exists | **Claude Code** |
+| `.cursor/` directory exists | **Cursor** |
+| `.github/` directory with copilot config exists | **GitHub Copilot** |
+| `.agent/` directory or `AGENTS.md` exists | **Antigravity** |
+
+If multiple signals are detected, ask the user which platform they're using.
+
+If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, or Antigravity.
+
+## Step 4: Configure platform
+
+Based on the detected platform, perform the platform-specific setup:
+
+### If Claude Code:
+
+**Permissions:** Read `.claude/settings.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules:
 
 ```json
 {
@@ -44,9 +61,7 @@ Read `.claude/settings.json` in the project root (create it if it doesn't exist)
 }
 ```
 
-## Step 4: Add JaRVIS section to CLAUDE.md
-
-Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following to the end of the file:
+**Instruction file:** Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following to the end of the file:
 
 ```markdown
 
@@ -89,7 +104,46 @@ If you installed JaRVIS globally (`~/.claude/skills/`), use the global path inst
 \```
 ```
 
-If the section already exists, skip this step.
+### If Cursor:
+
+**Instruction file:** Read the project's `.cursorrules` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following:
+
+```markdown
+
+## JaRVIS
+
+Run `/jarvis-reload` at the start of each session to load your identity and memories.
+Use `/jarvis-reload` to reload context mid-session if needed.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+```
+
+### If GitHub Copilot:
+
+**Instruction file:** Read the project's `.github/copilot-instructions.md` (create the `.github/` directory and file if they don't exist). If it does not already contain a `## JaRVIS` section, append the following:
+
+```markdown
+
+## JaRVIS
+
+Run `/jarvis-reload` at the start of each session to load your identity and memories.
+Use `/jarvis-reload` to reload context mid-session if needed.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+```
+
+### If Antigravity:
+
+**Instruction file:** Read the project's `AGENTS.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following:
+
+```markdown
+
+## JaRVIS
+
+Run `/jarvis-reload` at the start of each session to load your identity and memories.
+Use `/jarvis-reload` to reload context mid-session if needed.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+```
+
+If the JaRVIS section already exists in the instruction file, skip this step.
 
 ## Step 5: Update .gitignore if needed
 

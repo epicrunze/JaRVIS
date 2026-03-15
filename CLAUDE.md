@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of Claude Code skills that provide persistent memory, post-task reflection, and self-evolving identity for agents. It is a **skill distribution project**, not a traditional application — there is no build system, no runtime code, and no tests. Skills are pure instruction sets written as markdown.
+JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity that provide persistent memory, post-task reflection, and self-evolving identity. It is a **skill distribution project**, not a traditional application — there is no build system, no runtime code, and no tests. Skills are pure instruction sets written as markdown.
 
 ## Repository Structure
 
@@ -17,13 +17,18 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of Claude
 - `skills/jarvis-reflect/references/reflection-guide.md` — Quality standards for writing reflections (specific over generic)
 - `skills/jarvis-reload/hooks/` — SessionStart hook script for automatic context loading
   - `jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start
-- `CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS
+- `skills/jarvis-init/references/CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS (Claude Code)
+- `skills/jarvis-init/references/cursorrules.example` — Snippet for `.cursorrules` (Cursor)
+- `skills/jarvis-init/references/copilot-instructions.example` — Snippet for `.github/copilot-instructions.md` (GitHub Copilot)
+- `skills/jarvis-init/references/AGENTS.md.example` — Snippet for `AGENTS.md` (Antigravity)
 
 ## Installation Paths
 
-Skills are installed by copying skill folders into either:
-- `.claude/skills/` (project-level, recommended)
-- `~/.claude/skills/` (global, all projects)
+Skills are installed by copying skill folders into the platform's skills directory:
+- **Claude Code:** `.claude/skills/` (project) or `~/.claude/skills/` (global)
+- **Cursor:** `.cursor/skills/`
+- **GitHub Copilot:** `.github/skills/`
+- **Antigravity:** `.agent/skills/`
 
 ## Architecture
 
@@ -31,7 +36,7 @@ Setup is a one-time `/jarvis-init` to scaffold the directory. Session context is
 
 All agent artifacts (identity, memories, journals) are flat markdown files stored in `.jarvis/` at the consuming project's root. There are no databases, vector stores, or external services.
 
-Each SKILL.md uses YAML frontmatter (`name`, `description`, `disable-model-invocation`) and contains step-by-step instructions that Claude Code's skill system executes directly.
+Each SKILL.md uses YAML frontmatter (`name`, `description`, `disable-model-invocation`) and contains step-by-step instructions that the agent's skill system executes directly.
 
 ## Design Principles
 

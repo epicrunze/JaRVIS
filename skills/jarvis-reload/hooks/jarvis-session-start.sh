@@ -3,14 +3,14 @@
 # Automatically loads agent identity and memories at session start.
 # Output goes to stdout and becomes part of Claude's context.
 #
-# Installation: Add to .claude/settings.json under hooks.SessionStart
-# See CLAUDE.md.example for configuration details.
+# Installation: Add to your platform's hook configuration (e.g., .claude/settings.json for Claude Code)
+# See skills/jarvis-init/references/CLAUDE.md.example for configuration details.
 # This script lives inside the jarvis-reload skill so the documented
 # install paths (.claude/skills/jarvis-reload/hooks/...) work as-is.
 
 set -euo pipefail
 
-JARVIS_DIR="${CLAUDE_PROJECT_DIR:-.}/.jarvis"
+JARVIS_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/.jarvis"
 
 # --- Check for .jarvis/ directory ---
 if [[ ! -d "$JARVIS_DIR" ]]; then
@@ -98,7 +98,7 @@ fi
 # --- Auto memory note ---
 echo ""
 echo "---"
-echo "**Note on auto memory:** Claude Code's built-in auto memory handles incidental observations separately. JaRVIS memories are for deliberate, reflected-on knowledge from the reflection process. Don't duplicate auto memory observations into \`.jarvis/\`."
+echo "**Note on platform memory:** Some platforms have their own auto-memory systems that handle incidental observations separately. JaRVIS memories are for deliberate, reflected-on knowledge from the reflection process. Don't duplicate platform memory observations into \`.jarvis/\`."
 
 # --- Closing reminder ---
 echo ""

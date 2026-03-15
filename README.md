@@ -2,14 +2,14 @@
 
 **Journaling As Recurrent Versioned Identity Sculpting**
 
-A set of Claude Code skills that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your repo.
+A set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your repo.
 
 ## What it does
 
-JaRVIS adds four skills to Claude Code:
+JaRVIS adds four skills to your AI coding agent:
 
 - **`/jarvis-init`** — Scaffold the `.jarvis/` directory in your project (run once)
-- **`/jarvis-reload`** — Reload your agent's identity and memories mid-session (session start is automatic via hook)
+- **`/jarvis-reload`** — Reload your agent's identity and memories (automatic on session start for platforms with hooks, manual otherwise)
 - **`/jarvis-reflect`** — Structured post-task reflection that captures lessons, updates memories, and logs what happened
 - **`/jarvis-identity`** — Evolve the agent's identity document based on accumulated experience
 
@@ -32,7 +32,7 @@ All files are markdown. All files are git-trackable. Your agent's growth is visi
 
 ## Install
 
-### Option A: Plugin (recommended)
+### Option A: Plugin (Claude Code only)
 
 Install JaRVIS as a Claude Code plugin:
 
@@ -41,9 +41,11 @@ Install JaRVIS as a Claude Code plugin:
 /plugin install jarvis@jarvis-marketplace
 ```
 
-### Option B: Manual (project-level)
+### Option B: Manual install
 
-Copy the skill folders into your project:
+Copy the skill folders into your platform's skills directory:
+
+#### Claude Code
 
 ```bash
 cp -r skills/jarvis-init .claude/skills/jarvis-init
@@ -52,41 +54,60 @@ cp -r skills/jarvis-reflect .claude/skills/jarvis-reflect
 cp -r skills/jarvis-identity .claude/skills/jarvis-identity
 ```
 
-### Option C: Manual (global, all projects)
+Global install (all projects): copy to `~/.claude/skills/` instead.
+
+#### Cursor
 
 ```bash
-cp -r skills/jarvis-init ~/.claude/skills/jarvis-init
-cp -r skills/jarvis-reload ~/.claude/skills/jarvis-reload
-cp -r skills/jarvis-reflect ~/.claude/skills/jarvis-reflect
-cp -r skills/jarvis-identity ~/.claude/skills/jarvis-identity
+cp -r skills/jarvis-init .cursor/skills/jarvis-init
+cp -r skills/jarvis-reload .cursor/skills/jarvis-reload
+cp -r skills/jarvis-reflect .cursor/skills/jarvis-reflect
+cp -r skills/jarvis-identity .cursor/skills/jarvis-identity
 ```
 
-### Add to CLAUDE.md
+#### GitHub Copilot
 
-Add these lines to your project's `CLAUDE.md`:
-
-```markdown
-## JaRVIS
-
-Identity and memories are loaded automatically at session start via the SessionStart hook.
-Use `/jarvis-reload` to reload context mid-session if needed.
-After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+```bash
+cp -r skills/jarvis-init .github/skills/jarvis-init
+cp -r skills/jarvis-reload .github/skills/jarvis-reload
+cp -r skills/jarvis-reflect .github/skills/jarvis-reflect
+cp -r skills/jarvis-identity .github/skills/jarvis-identity
 ```
 
-Then run `/jarvis-init` to scaffold the `.jarvis/` directory.
+#### Antigravity
+
+```bash
+cp -r skills/jarvis-init .agent/skills/jarvis-init
+cp -r skills/jarvis-reload .agent/skills/jarvis-reload
+cp -r skills/jarvis-reflect .agent/skills/jarvis-reflect
+cp -r skills/jarvis-identity .agent/skills/jarvis-identity
+```
+
+### Add to your instruction file
+
+Add the JaRVIS section to your platform's instruction file. See the example files for what to add:
+
+| Platform | Instruction File | Example |
+|----------|-----------------|---------|
+| Claude Code | `CLAUDE.md` | `skills/jarvis-init/references/CLAUDE.md.example` |
+| Cursor | `.cursorrules` | `skills/jarvis-init/references/cursorrules.example` |
+| GitHub Copilot | `.github/copilot-instructions.md` | `skills/jarvis-init/references/copilot-instructions.example` |
+| Antigravity | `AGENTS.md` | `skills/jarvis-init/references/AGENTS.md.example` |
+
+Then run `/jarvis-init` to scaffold the `.jarvis/` directory. The init skill will detect your platform and configure things automatically.
 
 ## Usage
 
 ### First session
 
-1. Start Claude Code in your project
-2. Type `/jarvis-init` — this scaffolds the `.jarvis/` directory
-3. Do your work (identity loads automatically next session via hook)
-5. Type `/jarvis-reflect` — writes your first reflection
+1. Start your AI coding agent in your project
+2. Type `/jarvis-init` — this scaffolds the `.jarvis/` directory and configures your platform
+3. Do your work
+4. Type `/jarvis-reflect` — writes your first reflection
 
 ### Ongoing sessions
 
-1. Identity + memories load automatically at session start via hook
+1. Identity + memories load at session start (automatically via hook on Claude Code; run `/jarvis-reload` manually on other platforms)
 2. Work normally
 3. `/jarvis-reflect` after completing tasks
 4. Every 5 reflections, `/jarvis-identity` evolves the identity document
@@ -94,8 +115,10 @@ Then run `/jarvis-init` to scaffold the `.jarvis/` directory.
 ### The loop
 
 ```
-[auto-load] → work → /jarvis-reflect → work → /jarvis-reflect → ... → /jarvis-identity
+[load context] → work → /jarvis-reflect → work → /jarvis-reflect → ... → /jarvis-identity
 ```
+
+> **Note:** On platforms without session-start hooks, run `/jarvis-reload` at the start of each session to load your identity and memories.
 
 ## Philosophy
 

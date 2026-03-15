@@ -7,7 +7,7 @@ description: Reload jarvis identity and memories mid-session. Use this skill whe
 
 Reload your identity and memories mid-session. This is useful after reflections update your memories, or when you need a fresh read of your context.
 
-> **Note:** Identity and memories are loaded automatically at session start via the SessionStart hook. This skill is for mid-session refreshes.
+> **Note:** On platforms with session-start hooks (e.g., Claude Code), identity loads automatically. On other platforms, run this skill at the start of each session.
 
 ## Step 1: Check for .jarvis/ directory
 
@@ -47,6 +47,6 @@ If the identity is blank:
 
 Keep it concise. The point is to show you have context, not to recite everything you know.
 
-## Note on auto memory
+## Note on platform memory
 
-Claude Code's built-in auto memory (~/.claude/projects/ MEMORY.md) runs separately and handles incidental observations. Don't duplicate those into .jarvis/. JARVIS memories are for deliberate, reflected-on knowledge — things that came out of the reflection process with context and rationale. If auto memory already captured something small like a build command or file path, there's no need to also store it in .jarvis/memories/.
+Some platforms have their own auto-memory systems (e.g., Claude Code's `~/.claude/projects/` MEMORY.md) that run separately and handle incidental observations. Don't duplicate those into .jarvis/. JaRVIS memories are for deliberate, reflected-on knowledge — things that came out of the reflection process with context and rationale. If your platform's memory already captured something small like a build command or file path, there's no need to also store it in .jarvis/memories/.
