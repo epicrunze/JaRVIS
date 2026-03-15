@@ -18,11 +18,11 @@ Everything lives in a `.jarvis/` directory in your project:
 ```
 .jarvis/
 ├── IDENTITY.md              # Who the agent is (version-controlled, self-authored)
+├── GROWTH.md                # Tracks reflection count and evolution history
 ├── memories/
-│   ├── tools.md             # Tool usage patterns and discoveries
 │   ├── preferences.md       # Observed user preferences
 │   ├── decisions.md         # Key decisions with rationale
-│   └── codebase.md          # Structural codebase knowledge
+│   └── ...                  # Additional files created through reflection
 └── journal/
     ├── 2026-03-10-14-30.md  # Reflection entries
     └── ...

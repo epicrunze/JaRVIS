@@ -81,14 +81,14 @@ if [[ -d "$JARVIS_DIR/journal" ]]; then
       # Extract the Task Summary section
       task_summary=$(awk '/^## Task Summary$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
       # Extract the Key Decisions section
-      key_decisions=$(awk '/^## Key Decisions$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
+      key_decisions=$(awk '/^## Memory Updates$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
       # Extract the Lessons section
-      lessons=$(awk '/^## Lessons$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
+      lessons=$(awk '/^## Lessons Learned$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
       if [[ -n "$heading" || -n "$task_summary" ]]; then
         echo ""
         [[ -n "$heading" ]] && echo "$heading"
         [[ -n "$task_summary" ]] && echo "$task_summary"
-        [[ -n "$key_decisions" ]] && echo "" && echo "### Key Decisions" && echo "" && echo "$key_decisions"
+        [[ -n "$key_decisions" ]] && echo "" && echo "### Memory Updates" && echo "" && echo "$key_decisions"
         [[ -n "$lessons" ]] && echo "" && echo "### Lessons" && echo "" && echo "$lessons"
       fi
     done <<< "$journal_files"

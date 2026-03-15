@@ -27,6 +27,7 @@ If the identity is blank (version 0.0), verbally acknowledge that you're a fresh
 Read all files in `.jarvis/memories/`:
 - `preferences.md` — what you've observed about the user
 - `decisions.md` — key decisions that you've made and their rationale
+- Any other memory files that have been created through reflection (e.g. `codebase.md`, `tools.md`)
 
 Focus on the `## Consolidated` sections first. Only read `## Recent` if you need more detail.
 
