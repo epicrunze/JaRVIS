@@ -15,6 +15,8 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of Claude
   - `jarvis-identity/` — Identity evolution: updates `.jarvis/IDENTITY.md` based on accumulated experience
 - `skills/jarvis-init/references/scaffolding.md` — Templates for bootstrapping a new `.jarvis/` directory
 - `skills/jarvis-reflect/references/reflection-guide.md` — Quality standards for writing reflections (specific over generic)
+- `hooks/` — SessionStart hook script for automatic context loading
+  - `jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start
 - `CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS
 
 ## Installation Paths
@@ -25,7 +27,7 @@ Skills are installed by copying skill folders into either:
 
 ## Architecture
 
-Setup is a one-time `/jarvis-init` to scaffold the directory. The ongoing workflow is a loop: `/jarvis-start` → work → `/jarvis-reflect` → work → `/jarvis-reflect` → ... → `/jarvis-identity` (every 5 reflections).
+Setup is a one-time `/jarvis-init` to scaffold the directory. Session context is loaded automatically via the `SessionStart` hook (identity, memories, last journal entry). The ongoing workflow is a loop: work → `/jarvis-reflect` → work → `/jarvis-reflect` → ... → `/jarvis-identity` (every 5 reflections). Use `/jarvis-start` mid-session to reload context after reflections update memories.
 
 All agent artifacts (identity, memories, journals) are flat markdown files stored in `.jarvis/` at the consuming project's root. There are no databases, vector stores, or external services.
 

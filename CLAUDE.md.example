@@ -1,4 +1,37 @@
 ## JaRVIS
 
-At the start of each session, run `/jarvis-start` to load your identity and memories from `.jarvis/`.
+Identity and memories are loaded automatically at session start via the SessionStart hook.
+Use `/jarvis-start` to reload context mid-session if needed.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+
+### Hook Installation
+
+Add the following to your project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash .claude/skills/jarvis-start/hooks/jarvis-session-start.sh"
+      }
+    ]
+  }
+}
+```
+
+If you installed JaRVIS globally (`~/.claude/skills/`), use the global path instead:
+
+```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash ~/.claude/skills/jarvis-start/hooks/jarvis-session-start.sh"
+      }
+    ]
+  }
+}
+```

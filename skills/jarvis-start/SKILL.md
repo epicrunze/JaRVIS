@@ -1,11 +1,13 @@
 ---
 name: jarvis-start
-description: Start a jarvis session by loading agent identity and memories. Use this skill at the start of any coding session, when the user says "start session", "load jarvis", "who are you", "what do you remember", or at the beginning of any new conversation. Also use when the user asks about their project context or prior decisions.
+description: Reload jarvis identity and memories mid-session. Session start is automatic via the SessionStart hook. Use this skill when the user says "reload jarvis", "refresh context", "who are you", "what do you remember", or when you need to re-read identity/memories after they've been updated during the session.
 ---
 
-# JaRVIS Session Start
+# JaRVIS Session Reload
 
-Load your identity and memories so you know who you are and what you know.
+Reload your identity and memories mid-session. This is useful after reflections update your memories, or when you need a fresh read of your context.
+
+> **Note:** Identity and memories are loaded automatically at session start via the SessionStart hook. This skill is for mid-session refreshes.
 
 ## Step 1: Check for .jarvis/ directory
 
