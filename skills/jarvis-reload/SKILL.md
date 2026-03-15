@@ -1,6 +1,6 @@
 ---
-name: jarvis-start
-description: Reload jarvis identity and memories mid-session. Session start is automatic via the SessionStart hook. Use this skill when the user says "reload jarvis", "refresh context", "who are you", "what do you remember", or when you need to re-read identity/memories after they've been updated during the session.
+name: jarvis-reload
+description: Reload jarvis identity and memories mid-session. Use this skill when the user says "reload jarvis", "refresh context", "who are you", "what do you remember", or when you need to re-read identity/memories after they've been updated during the session.
 ---
 
 # JaRVIS Session Reload

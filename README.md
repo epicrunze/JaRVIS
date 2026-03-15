@@ -9,7 +9,7 @@ A set of Claude Code skills that give your agent persistent memory, post-task re
 JaRVIS adds four skills to Claude Code:
 
 - **`/jarvis-init`** — Scaffold the `.jarvis/` directory in your project (run once)
-- **`/jarvis-start`** — Load your agent's identity and memories at session start
+- **`/jarvis-reload`** — Reload your agent's identity and memories mid-session (session start is automatic via hook)
 - **`/jarvis-reflect`** — Structured post-task reflection that captures lessons, updates memories, and logs what happened
 - **`/jarvis-identity`** — Evolve the agent's identity document based on accumulated experience
 
@@ -47,7 +47,7 @@ Copy the skill folders into your project:
 
 ```bash
 cp -r skills/jarvis-init .claude/skills/jarvis-init
-cp -r skills/jarvis-start .claude/skills/jarvis-start
+cp -r skills/jarvis-reload .claude/skills/jarvis-reload
 cp -r skills/jarvis-reflect .claude/skills/jarvis-reflect
 cp -r skills/jarvis-identity .claude/skills/jarvis-identity
 ```
@@ -56,7 +56,7 @@ cp -r skills/jarvis-identity .claude/skills/jarvis-identity
 
 ```bash
 cp -r skills/jarvis-init ~/.claude/skills/jarvis-init
-cp -r skills/jarvis-start ~/.claude/skills/jarvis-start
+cp -r skills/jarvis-reload ~/.claude/skills/jarvis-reload
 cp -r skills/jarvis-reflect ~/.claude/skills/jarvis-reflect
 cp -r skills/jarvis-identity ~/.claude/skills/jarvis-identity
 ```
@@ -68,7 +68,8 @@ Add these lines to your project's `CLAUDE.md`:
 ```markdown
 ## JaRVIS
 
-At the start of each session, run `/jarvis-start` to load your identity and memories.
+Identity and memories are loaded automatically at session start via the SessionStart hook.
+Use `/jarvis-reload` to reload context mid-session if needed.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
 ```
 
@@ -80,13 +81,12 @@ Then run `/jarvis-init` to scaffold the `.jarvis/` directory.
 
 1. Start Claude Code in your project
 2. Type `/jarvis-init` — this scaffolds the `.jarvis/` directory
-3. Type `/jarvis-start` — loads your (blank) identity and memories
-4. Do your work
+3. Do your work (identity loads automatically next session via hook)
 5. Type `/jarvis-reflect` — writes your first reflection
 
 ### Ongoing sessions
 
-1. `/jarvis-start` loads identity + memories (or happens automatically via CLAUDE.md)
+1. Identity + memories load automatically at session start via hook
 2. Work normally
 3. `/jarvis-reflect` after completing tasks
 4. Every 5 reflections, `/jarvis-identity` evolves the identity document
@@ -94,7 +94,7 @@ Then run `/jarvis-init` to scaffold the `.jarvis/` directory.
 ### The loop
 
 ```
-/jarvis-start → work → /jarvis-reflect → work → /jarvis-reflect → ... → /jarvis-identity
+[auto-load] → work → /jarvis-reflect → work → /jarvis-reflect → ... → /jarvis-identity
 ```
 
 ## Philosophy
