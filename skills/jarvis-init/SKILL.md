@@ -44,11 +44,58 @@ Read `.claude/settings.json` in the project root (create it if it doesn't exist)
 }
 ```
 
-## Step 4: Update .gitignore if needed
+## Step 4: Add JaRVIS section to CLAUDE.md
+
+Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following to the end of the file:
+
+```markdown
+
+## JaRVIS
+
+Identity and memories are loaded automatically at session start via the SessionStart hook.
+Use `/jarvis-reload` to reload context mid-session if needed.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
+
+### Hook Installation
+
+Add the following to your project's `.claude/settings.json`:
+
+\```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash .claude/skills/jarvis-reload/hooks/jarvis-session-start.sh"
+      }
+    ]
+  }
+}
+\```
+
+If you installed JaRVIS globally (`~/.claude/skills/`), use the global path instead:
+
+\```json
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "bash ~/.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh"
+      }
+    ]
+  }
+}
+\```
+```
+
+If the section already exists, skip this step.
+
+## Step 5: Update .gitignore if needed
 
 Check if the project has a `.gitignore`. If it does, ask the user if they would like `.jarvis/` to not be ignored — these files are meant to be version-controlled.
 
-## Step 5: Report
+## Step 6: Report
 
 Confirm the setup is complete and suggest next steps:
 
