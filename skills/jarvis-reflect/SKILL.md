@@ -98,11 +98,11 @@ This is the "sculpting" — you're not just adding, you're shaping.
 
 ## Step 6: Check if identity evolution is due
 
-Read back on your Identity Impact section in your journal entry. Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity. If not, that's ok. As your identity develops, you will naturally encounter less and less surprising things.
+Read back on your Identity Impact section in your journal entry. There are two conditions to evolve your identity, if either of them are met, then invoke `/jarvis-identity` to evolve your identity. 
 
-Count the journal entries in `.jarvis/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
+1.  Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity.
 
-Invoke `/jarvis-identity` to evolve your identity.
+2.  Count the journal entries in `.jarvis/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
 
 If it's not time yet, report how many reflections until the next evolution.
 
