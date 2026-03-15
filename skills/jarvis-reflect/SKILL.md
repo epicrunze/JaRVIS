@@ -18,6 +18,14 @@ Create a new journal entry at `.jarvis/journal/YYYY-MM-DD-HH-MM.md` using the cu
 Fill in every section honestly. Read `references/reflection-guide.md` for detailed guidance on what makes a good vs bad reflection entry. The format is:
 
 ```markdown
+---
+date: YYYY-MM-DD
+time: HH:MM
+tags: [tag1, tag2]           # 2-5 descriptive lowercase keywords
+task_type: feature|bugfix|refactor|docs|research|config|other
+files_touched: [file1, file2] # optional, relative paths
+---
+
 # Reflection — YYYY-MM-DD HH:MM
 
 ## Task Summary
@@ -41,6 +49,12 @@ Fill in every section honestly. Read `references/reflection-guide.md` for detail
 ## Identity Impact
 [Did this change you? New competence? New principle? Deeper user understanding?]
 ```
+
+### Frontmatter guidelines
+
+- **tags**: 2-5 descriptive lowercase keywords derived from the task content. These should be searchable terms that capture what the task involved (e.g., `[pagination, prisma, api-routes]`, not `[code]`).
+- **task_type**: Choose from `feature`, `bugfix`, `refactor`, `docs`, `research`, `config`, or `other` based on what was done.
+- **files_touched**: Optional. List 1-10 of the most significant files changed, using relative paths from the project root. Omit if the task didn't involve specific files.
 
 ## Step 3: Update memory files
 

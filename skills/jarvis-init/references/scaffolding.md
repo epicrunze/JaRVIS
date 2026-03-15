@@ -37,6 +37,10 @@ No observations yet. Preferences noted during collaboration appear here.
 |------|---------|-------------|-----|
 ```
 
+## Journal entry format note
+
+Journal entries created by `/jarvis-reflect` include YAML frontmatter with `date`, `time`, `tags`, `task_type`, and optionally `files_touched`. This frontmatter enables structured search via `/jarvis-search` and validation via `/jarvis-validate`.
+
 ## memories/preferences.md
 
 ```markdown

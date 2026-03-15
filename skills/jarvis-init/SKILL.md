@@ -61,61 +61,41 @@ Based on the detected platform, perform the platform-specific setup:
 }
 ```
 
-**Instruction file:** Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following to the end of the file:
+**Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.json` (the same file from the permissions step):
 
-```markdown
+1. Determine the hook script path: if `.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` (global install).
+2. Ensure the `hooks` object exists in the settings JSON. Ensure `hooks.SessionStart` is an array.
+3. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing command strings inside `hooks.SessionStart`.
+4. If not already present, append this entry to the `hooks.SessionStart` array:
+   ```json
+   {
+     "type": "command",
+     "command": "bash <detected-path>"
+   }
+   ```
+5. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
 
-## JaRVIS
-
-Identity and memories are loaded automatically at session start via the SessionStart hook.
-Use `/jarvis-reload` to reload context mid-session if needed.
-After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-
-### Hook Installation
-
-Add the following to your project's `.claude/settings.json`:
-
-\```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "bash .claude/skills/jarvis-reload/hooks/jarvis-session-start.sh"
-      }
-    ]
-  }
-}
-\```
-
-If you installed JaRVIS globally (`~/.claude/skills/`), use the global path instead:
-
-\```json
-{
-  "hooks": {
-    "SessionStart": [
-      {
-        "type": "command",
-        "command": "bash ~/.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh"
-      }
-    ]
-  }
-}
-\```
-```
+**Instruction file:** Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/CLAUDE.md.example` to the end of the file (preceded by a blank line).
 
 ### If Cursor:
 
-**Instruction file:** Read the project's `.cursorrules` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following:
+**Hooks:** Create or merge the JaRVIS sessionStart hook into `.cursor/hooks.json`:
 
-```markdown
+1. Determine the hook script path: if `.cursor/skills/jarvis-reload/hooks/jarvis-session-start-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reload/hooks/jarvis-session-start-cursor.sh` (global install).
+2. Read `.cursor/hooks.json` if it exists. If it doesn't exist, start with `{ "version": 1, "hooks": {} }`.
+3. Ensure `hooks.sessionStart` is an array (note: camelCase, not PascalCase).
+4. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing command strings inside `hooks.sessionStart`.
+5. If not already present, append this entry to the `hooks.sessionStart` array:
+   ```json
+   {
+     "type": "command",
+     "command": "bash <detected-path>",
+     "timeout": 30
+   }
+   ```
+6. Write the merged JSON back to `.cursor/hooks.json`, preserving all existing hooks.
 
-## JaRVIS
-
-Run `/jarvis-reload` at the start of each session to load your identity and memories.
-Use `/jarvis-reload` to reload context mid-session if needed.
-After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-```
+**Instruction file:** Read the project's `.cursorrules` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/cursorrules.example` to the end of the file (preceded by a blank line).
 
 ### If GitHub Copilot:
 

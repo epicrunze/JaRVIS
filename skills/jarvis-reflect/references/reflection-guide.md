@@ -2,6 +2,37 @@
 
 Good reflections are specific, honest, and actionable. Bad reflections are generic, self-congratulatory, and vague.
 
+## Frontmatter
+
+Every journal entry starts with YAML frontmatter. The frontmatter enables structured search and validation.
+
+**Bad**:
+```yaml
+---
+date: 2025-01-15
+time: 14:30
+tags: [code]
+task_type: feature
+---
+```
+
+**Good**:
+```yaml
+---
+date: 2025-01-15
+time: 14:30
+tags: [pagination, prisma, api-routes]
+task_type: feature
+files_touched: [src/routes/users.ts, src/utils/pagination.ts, docs/openapi.yaml]
+---
+```
+
+The test: are the tags specific enough to find this entry when searching for similar work later?
+
+- **tags**: Use 2-5 lowercase keywords that describe the domain, technology, or concept — not generic words like "code", "fix", or "update".
+- **task_type**: Match the primary nature of the work: `feature` (new capability), `bugfix` (correcting behavior), `refactor` (restructuring without behavior change), `docs` (documentation), `research` (investigation/analysis), `config` (tooling/settings), `other`.
+- **files_touched**: Optional. List the most significant files, not every file. Omit for research or discussion tasks.
+
 ## Task Summary
 
 **Bad**: "Helped with the API"
