@@ -34,7 +34,7 @@ Multiple flags can be combined for precise queries.
 Run the search script:
 
 ```bash
-bash <skill-path>/references/search.sh --jarvis-dir <data-dir> [OPTIONS] --query KEYWORD
+bash <skill-path>/scripts/search.sh --jarvis-dir <data-dir> [OPTIONS] --query KEYWORD
 ```
 
 Full interface:

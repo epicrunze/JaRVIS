@@ -22,7 +22,7 @@ If no `.jarvis/` exists in the project root, skip this step.
 Run the init script to resolve the path, scaffold the directory, install `resolve-dir.sh`, and create a git repo:
 
 ```bash
-bash <skill-path>/references/jarvis-init.sh [--migrate] [--project-dir <path>]
+bash <skill-path>/scripts/jarvis-init.sh [--migrate] [--project-dir <path>]
 ```
 
 - Pass `--migrate` if the user agreed to migrate in Step 1.
@@ -64,19 +64,19 @@ Based on the detected platform, perform the platform-specific setup:
       "Write(~/.jarvis/projects/<slug>/**)",
       "Bash(cd ~/.jarvis/projects/<slug> && git *)",
       "Bash(source ~/.jarvis/bin/resolve-dir.sh)",
-      "Bash(bash <detected-skills-path>/jarvis-validate/references/validate.sh *)",
-      "Bash(bash <detected-skills-path>/jarvis-search/references/search.sh *)",
-      "Bash(bash <detected-skills-path>/jarvis-init/references/jarvis-init.sh *)"
+      "Bash(bash <detected-skills-path>/jarvis-validate/scripts/validate.sh *)",
+      "Bash(bash <detected-skills-path>/jarvis-search/scripts/search.sh *)",
+      "Bash(bash <detected-skills-path>/jarvis-init/scripts/jarvis-init.sh *)"
     ]
   }
 }
 ```
 
-For the script permissions, determine `<detected-skills-path>`: if `.claude/skills/jarvis-validate/references/validate.sh` exists in the project root, skills are installed locally — use `.claude/skills` as the prefix. Otherwise use `~/.claude/skills` (global install). Apply this prefix to all three skill script paths. The `resolve-dir.sh` path is always `~/.jarvis/bin/resolve-dir.sh` (fixed location).
+For the script permissions, determine `<detected-skills-path>`: if `.claude/skills/jarvis-validate/scripts/validate.sh` exists in the project root, skills are installed locally — use `.claude/skills` as the prefix. Otherwise use `~/.claude/skills` (global install). Apply this prefix to all three skill script paths. The `resolve-dir.sh` path is always `~/.jarvis/bin/resolve-dir.sh` (fixed location).
 
 **Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.local.json` (the same file from the permissions step):
 
-1. Determine the hook script path: if `.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` (global install).
+1. Determine the hook script path: if `.claude/skills/jarvis-reload/scripts/jarvis-session-start.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reload/scripts/jarvis-session-start.sh` (global install).
 2. Ensure the `hooks` object exists in the settings JSON. Ensure `hooks.SessionStart` is an array. Each entry in `hooks.SessionStart` must be an object with `matcher` (string) and `hooks` (array) keys.
 3. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing `hooks.SessionStart` entries' `hooks` sub-array command strings.
 4. If not already present, append this entry to the `hooks.SessionStart` array:
@@ -92,7 +92,7 @@ For the script permissions, determine `<detected-skills-path>`: if `.claude/skil
    }
    ```
 5. Write the merged JSON back to `.claude/settings.local.json`, preserving all existing hooks and other settings.
-6. **Stop hook:** Determine the stop hook script path: if `.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` (global install).
+6. **Stop hook:** Determine the stop hook script path: if `.claude/skills/jarvis-reflect/scripts/jarvis-stop.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reflect/scripts/jarvis-stop.sh` (global install).
 7. Ensure `hooks.Stop` is an array. Each entry must be an object with `matcher` (string) and `hooks` (array) keys.
 8. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing `hooks.Stop` entries' `hooks` sub-array command strings.
 9. If not already present, append this entry to the `hooks.Stop` array:
@@ -115,7 +115,7 @@ For the script permissions, determine `<detected-skills-path>`: if `.claude/skil
 
 **Hooks:** Create or merge the JaRVIS sessionStart hook into `.cursor/hooks.json`:
 
-1. Determine the hook script path: if `.cursor/skills/jarvis-reload/hooks/jarvis-session-start-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reload/hooks/jarvis-session-start-cursor.sh` (global install).
+1. Determine the hook script path: if `.cursor/skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` (global install).
 2. Read `.cursor/hooks.json` if it exists. If it doesn't exist, start with `{ "version": 1, "hooks": {} }`.
 3. Ensure `hooks.sessionStart` is an array (note: camelCase, not PascalCase).
 4. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing command strings inside `hooks.sessionStart`.
@@ -128,7 +128,7 @@ For the script permissions, determine `<detected-skills-path>`: if `.claude/skil
    }
    ```
 6. Write the merged JSON back to `.cursor/hooks.json`, preserving all existing hooks.
-7. **Stop hook:** Determine the stop hook script path: if `.cursor/skills/jarvis-reflect/hooks/jarvis-stop-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reflect/hooks/jarvis-stop-cursor.sh` (global install).
+7. **Stop hook:** Determine the stop hook script path: if `.cursor/skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` (global install).
 8. Ensure `hooks.stop` is an array (camelCase).
 9. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing command strings inside `hooks.stop`.
 10. If not already present, append this entry to the `hooks.stop` array:

@@ -18,7 +18,7 @@ If the resolved directory doesn't exist, inform the user they need to run `/jarv
 Run the validation script against the JaRVIS data directory:
 
 ```bash
-bash <skill-path>/references/validate.sh <data-dir>
+bash <skill-path>/scripts/validate.sh <data-dir>
 ```
 
 The script checks:

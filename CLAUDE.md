@@ -15,18 +15,20 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
   - `jarvis-identity/` — Identity evolution: updates `IDENTITY.md` based on accumulated experience
   - `jarvis-validate/` — Format validation: checks journals, memories, identity, and growth log for correctness
   - `jarvis-search/` — Structured search: keyword, tag, date, and section-based search across all JaRVIS artifacts
-- `skills/jarvis-init/references/resolve-dir.sh` — Shared path resolver (sets `JARVIS_DIR`); installed to `~/.jarvis/bin/` during init
-- `skills/jarvis-init/references/jarvis-init.sh` — Init automation script (scaffold, migrate, git init)
+- `skills/jarvis-init/scripts/resolve-dir.sh` — Shared path resolver (sets `JARVIS_DIR`); installed to `~/.jarvis/bin/` during init
+- `skills/jarvis-init/scripts/jarvis-init.sh` — Init automation script (scaffold, migrate, git init)
 - `skills/jarvis-init/references/scaffolding.md` — Templates for bootstrapping a new JaRVIS data directory
 - `skills/jarvis-reflect/references/reflection-guide.md` — Quality standards for writing reflections (specific over generic)
-- `skills/jarvis-reload/hooks/` — SessionStart hook script for automatic context loading
-  - `jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start
+- `skills/jarvis-reload/scripts/jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start
+- `skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` — Cursor variant of session start hook
+- `skills/jarvis-reflect/scripts/jarvis-stop.sh` — Stop hook that reminds to reflect before ending session
+- `skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` — Cursor variant of stop hook
 - `skills/jarvis-init/references/CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS (Claude Code)
 - `skills/jarvis-init/references/cursorrules.example` — Snippet for `.cursorrules` (Cursor)
 - `skills/jarvis-init/references/copilot-instructions.example` — Snippet for `.github/copilot-instructions.md` (GitHub Copilot)
 - `skills/jarvis-init/references/AGENTS.md.example` — Snippet for `AGENTS.md` (Antigravity)
-- `skills/jarvis-validate/references/validate.sh` — Shell script for format validation of JaRVIS artifacts
-- `skills/jarvis-search/references/search.sh` — Shell script for structured search across JaRVIS artifacts
+- `skills/jarvis-validate/scripts/validate.sh` — Shell script for format validation of JaRVIS artifacts
+- `skills/jarvis-search/scripts/search.sh` — Shell script for structured search across JaRVIS artifacts
 
 ## Installation Paths
 

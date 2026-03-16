@@ -6,12 +6,12 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/hooks/jarvis-session-start.sh"
-STOP_HOOK="$SCRIPT_DIR/skills/jarvis-reflect/hooks/jarvis-stop.sh"
-VALIDATE="$SCRIPT_DIR/skills/jarvis-validate/references/validate.sh"
-SEARCH="$SCRIPT_DIR/skills/jarvis-search/references/search.sh"
-RESOLVE_DIR="$SCRIPT_DIR/skills/jarvis-init/references/resolve-dir.sh"
-JARVIS_INIT="$SCRIPT_DIR/skills/jarvis-init/references/jarvis-init.sh"
+SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/scripts/jarvis-session-start.sh"
+STOP_HOOK="$SCRIPT_DIR/skills/jarvis-reflect/scripts/jarvis-stop.sh"
+VALIDATE="$SCRIPT_DIR/skills/jarvis-validate/scripts/validate.sh"
+SEARCH="$SCRIPT_DIR/skills/jarvis-search/scripts/search.sh"
+RESOLVE_DIR="$SCRIPT_DIR/skills/jarvis-init/scripts/resolve-dir.sh"
+JARVIS_INIT="$SCRIPT_DIR/skills/jarvis-init/scripts/jarvis-init.sh"
 
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf "$TEST_ROOT"' EXIT

@@ -7,8 +7,8 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-VALIDATE="$SCRIPT_DIR/skills/jarvis-validate/references/validate.sh"
-SEARCH="$SCRIPT_DIR/skills/jarvis-search/references/search.sh"
+VALIDATE="$SCRIPT_DIR/skills/jarvis-validate/scripts/validate.sh"
+SEARCH="$SCRIPT_DIR/skills/jarvis-search/scripts/search.sh"
 
 # --- Colors ---
 RED='\033[0;31m'
