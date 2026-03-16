@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# JaRVIS Search — search across .jarvis/ artifacts
+# JaRVIS Search — search across JaRVIS artifacts
 # Usage: search.sh [OPTIONS] [--query KEYWORD]
 #   --type journal|memory|identity|growth   (default: all)
 #   --from YYYY-MM-DD                       date range start
@@ -12,7 +12,13 @@
 set -euo pipefail
 
 # --- Defaults ---
-JARVIS_DIR=".jarvis"
+if [ -n "${JARVIS_DIR:-}" ]; then
+  : # env var already set
+else
+  _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+  _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+  JARVIS_DIR="$HOME/.jarvis/projects/$_slug"
+fi
 SEARCH_TYPE="all"
 DATE_FROM=""
 DATE_TO=""
@@ -82,7 +88,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --task-type TYPE                       Filter by frontmatter task_type"
       echo "  --section \"Section Name\"               Search within specific section"
       echo "  --query KEYWORD                        Keyword/phrase search"
-      echo "  --jarvis-dir PATH                      Path to .jarvis/ (default: .jarvis)"
+      echo "  --jarvis-dir PATH                      Path to JaRVIS data dir (default: ~/.jarvis/projects/<slug>)"
       exit 0
       ;;
     *)
@@ -92,9 +98,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-# --- Validate .jarvis/ ---
+# --- Validate JaRVIS data dir ---
 if [[ ! -d "$JARVIS_DIR" ]]; then
-  echo "Error: .jarvis/ directory not found at $JARVIS_DIR" >&2
+  echo "Error: JaRVIS data directory not found at $JARVIS_DIR" >&2
   exit 1
 fi
 

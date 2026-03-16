@@ -2,23 +2,23 @@
 
 **Journaling As Recurrent Versioned Identity Sculpting**
 
-A set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your repo.
+A set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your home directory.
 
 ## What it does
 
 JaRVIS adds six skills to your AI coding agent:
 
-- **`/jarvis-init`** — Scaffold the `.jarvis/` directory in your project (run once)
+- **`/jarvis-init`** — Scaffold the JaRVIS data directory (run once)
 - **`/jarvis-reload`** — Reload your agent's identity and memories (automatic on session start for platforms with hooks, manual otherwise)
 - **`/jarvis-reflect`** — Structured post-task reflection that captures lessons, updates memories, and logs what happened
 - **`/jarvis-identity`** — Evolve the agent's identity document based on accumulated experience
-- **`/jarvis-validate`** — Check `.jarvis/` artifacts for format correctness
+- **`/jarvis-validate`** — Check JaRVIS artifacts for format correctness
 - **`/jarvis-search`** — Search past entries by keyword, tag, date range, or section
 
-Everything lives in a `.jarvis/` directory in your project:
+Everything lives in `~/.jarvis/projects/<slug>/` under your home directory (where `<slug>` is derived from your project path):
 
 ```
-.jarvis/
+~/.jarvis/projects/<slug>/
 ├── IDENTITY.md              # Who the agent is (version-controlled, self-authored)
 ├── GROWTH.md                # Tracks reflection count and evolution history
 ├── memories/
@@ -30,7 +30,9 @@ Everything lives in a `.jarvis/` directory in your project:
     └── ...
 ```
 
-All files are markdown. All files are git-trackable. Your agent's growth is visible in your commit history.
+The `<slug>` is your project path with the leading `/` stripped, `/` and spaces replaced with `-`, and lowercased. For example, `/home/user/Projects/MyApp` becomes `home-user-projects-myapp`. Override with the `JARVIS_DIR` environment variable.
+
+All files are markdown. Each data directory has its own git repo, initialized automatically by `/jarvis-init`. Your agent's growth is visible in its own commit history.
 
 ## Install
 
@@ -67,7 +69,7 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
 
 5. Clean up: rm -rf JaRVIS-main
 
-6. If the .jarvis/ directory does NOT already exist, run /jarvis-init to complete setup. If .jarvis/ already exists, skip this step — the update is complete.
+6. If JaRVIS hasn't been set up for this project yet, run /jarvis-init to complete setup. If JaRVIS is already set up, skip this step — the update is complete.
 ```
 
 Works with Claude Code, Cursor, GitHub Copilot, and Antigravity. See [`install/PROMPT.md`](install/PROMPT.md) for details.
@@ -113,7 +115,7 @@ Add the JaRVIS section to your platform's instruction file. See the example file
 | GitHub Copilot | `.github/copilot-instructions.md` | `skills/jarvis-init/references/copilot-instructions.example` |
 | Antigravity | `AGENTS.md` | `skills/jarvis-init/references/AGENTS.md.example` |
 
-Then run `/jarvis-init` to scaffold the `.jarvis/` directory. The init skill will detect your platform and configure things automatically.
+Then run `/jarvis-init` to scaffold the JaRVIS data directory. The init skill will detect your platform and configure things automatically.
 
 ## Hooks
 
@@ -131,7 +133,7 @@ Hook scripts live inside the skill directories (`jarvis-reload/hooks/` and `jarv
 ### First session
 
 1. Start your AI coding agent in your project
-2. Type `/jarvis-init` — this scaffolds the `.jarvis/` directory and configures your platform
+2. Type `/jarvis-init` — this scaffolds the JaRVIS data directory and configures your platform
 3. Do your work
 4. Type `/jarvis-reflect` — writes your first reflection
 
@@ -160,7 +162,7 @@ The key ideas:
 - **Reflection over logging.** Not "what happened" but "what did I learn and what should I do differently."
 - **Earned identity.** The agent only claims expertise it has demonstrated. Principles come from experience, not aspiration.
 - **Memory consolidation.** Memories are periodically sculpted — deduplicated, tightened, and shaped. You're not just adding clay, you're sculpting it.
-- **Transparency.** Everything is human-readable markdown in your repo. No databases, no vector stores, no black boxes.
+- **Transparency.** Everything is human-readable markdown in `~/.jarvis/`. No databases, no vector stores, no black boxes.
 
 ## License
 

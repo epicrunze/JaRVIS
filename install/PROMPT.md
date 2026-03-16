@@ -30,7 +30,7 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
 
 5. Clean up: rm -rf JaRVIS-main
 
-6. If the .jarvis/ directory does NOT already exist, run /jarvis-init to complete setup. If .jarvis/ already exists, skip this step — the update is complete.
+6. If JaRVIS hasn't been set up for this project yet, run /jarvis-init to complete setup. If JaRVIS is already set up, skip this step — the update is complete.
 ```
 
 > **Global install (Claude Code only):** To install JaRVIS for all projects, tell the agent to use `SKILLS_DIR="$HOME/.claude/skills"` instead of detecting the platform.

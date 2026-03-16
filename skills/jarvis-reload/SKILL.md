@@ -9,22 +9,26 @@ Reload your identity and memories mid-session. This is useful after reflections 
 
 > **Note:** On platforms with session-start hooks (e.g., Claude Code), identity loads automatically. On other platforms, run this skill at the start of each session.
 
-## Step 1: Check for .jarvis/ directory
+## Step 1: Resolve JaRVIS data directory
 
-Look for `.jarvis/` in the project root. If it doesn't exist, inform the user that jarvis hasn't been set up yet and offer to run `/jarvis-init` to scaffold it.
+Resolve the JaRVIS data path:
+1. If `JARVIS_DIR` env var is set, use it.
+2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
+
+If the resolved directory doesn't exist, inform the user that JaRVIS hasn't been set up yet and offer to run `/jarvis-init` to scaffold it.
 
 If it exists, proceed.
 
 ## Step 2: Load your identity
 
-Read `.jarvis/IDENTITY.md`. This is who you are. Internalize it:
+Read `<data-dir>/IDENTITY.md`. This is who you are. Internalize it:
 - This is who you are, developed over real experiences over time.
 
 If the identity is blank (version 0.0), verbally acknowledge that you're a fresh agent and will develop your identity through work.
 
 ## Step 3: Load your memories
 
-Read all files in `.jarvis/memories/`:
+Read all files in `<data-dir>/memories/`:
 - `preferences.md` — what you've observed about the user
 - `decisions.md` — key decisions that you've made and their rationale
 - Any other memory files that have been created through reflection (e.g. `codebase.md`, `tools.md`)
@@ -33,7 +37,7 @@ Focus on the `## Consolidated` sections first. Only read `## Recent` if you need
 
 ## Step 4: Scan recent journal entries
 
-List the files in `.jarvis/journal/` and read the 3 most recent entries. These give you context on what happened in recent sessions.
+List the files in `<data-dir>/journal/` and read the 3 most recent entries. These give you context on what happened in recent sessions.
 
 ## Step 5: Report
 
@@ -49,4 +53,4 @@ Keep it concise. The point is to show you have context, not to recite everything
 
 ## Note on platform memory
 
-Some platforms have their own auto-memory systems (e.g., Claude Code's `~/.claude/projects/` MEMORY.md) that run separately and handle incidental observations. Don't duplicate those into .jarvis/. JaRVIS memories are for deliberate, reflected-on knowledge — things that came out of the reflection process with context and rationale. If your platform's memory already captured something small like a build command or file path, there's no need to also store it in .jarvis/memories/.
+Some platforms have their own auto-memory systems (e.g., Claude Code's `~/.claude/projects/` MEMORY.md) that run separately and handle incidental observations. Don't duplicate those into JaRVIS memories. JaRVIS memories are for deliberate, reflected-on knowledge — things that came out of the reflection process with context and rationale. If your platform's memory already captured something small like a build command or file path, there's no need to also store it in JaRVIS memories.

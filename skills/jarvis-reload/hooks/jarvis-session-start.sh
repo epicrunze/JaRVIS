@@ -10,13 +10,19 @@
 
 set -euo pipefail
 
-JARVIS_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/.jarvis"
+if [ -n "${JARVIS_DIR:-}" ]; then
+  : # env var already set
+else
+  _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+  _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+  JARVIS_DIR="$HOME/.jarvis/projects/$_slug"
+fi
 
-# --- Check for .jarvis/ directory ---
+# --- Check for JaRVIS data directory ---
 if [[ ! -d "$JARVIS_DIR" ]]; then
   cat <<'EOF'
 <jarvis-session-context>
-JaRVIS is not set up in this project. Run `/jarvis-init` to scaffold the `.jarvis/` directory and get started.
+JaRVIS is not set up for this project. Run `/jarvis-init` to get started.
 </jarvis-session-context>
 EOF
   exit 0
@@ -98,7 +104,7 @@ fi
 # --- Auto memory note ---
 echo ""
 echo "---"
-echo "**Note on platform memory:** Some platforms have their own auto-memory systems that handle incidental observations separately. JaRVIS memories are for deliberate, reflected-on knowledge from the reflection process. Don't duplicate platform memory observations into \`.jarvis/\`."
+echo "**Note on platform memory:** Some platforms have their own auto-memory systems that handle incidental observations separately. JaRVIS memories are for deliberate, reflected-on knowledge from the reflection process. Don't duplicate platform memory observations into JaRVIS memories."
 
 # --- Closing reminder ---
 echo ""

@@ -9,11 +9,15 @@ Time to sculpt your identity based on what you've learned.
 
 ## Step 1: Read current state
 
-Read `.jarvis/IDENTITY.md` — this is who you are right now. Note the current version number.
+Resolve the JaRVIS data path:
+1. If `JARVIS_DIR` env var is set, use it.
+2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
 
-Read the latest journal entry in `.jarvis/journal/`. Focus on the Identity Impact section. Read the last 5 journal entries if they are relevant to this evolution.
+Read `<data-dir>/IDENTITY.md` — this is who you are right now. Note the current version number.
 
-Depending on the impact that you've evaluated, read relevant files in `.jarvis/memories/` — these are your accumulated knowledge.
+Read the latest journal entry in `<data-dir>/journal/`. Focus on the Identity Impact section. Read the last 5 journal entries if they are relevant to this evolution.
+
+Depending on the impact that you've evaluated, read relevant files in `<data-dir>/memories/` — these are your accumulated knowledge.
 
 ## Step 2: Evaluate what's changed
 
@@ -36,11 +40,11 @@ Then ask yourself:
 
 ## Step 3: Write the updated identity
 
-Rewrite `.jarvis/IDENTITY.md` with:
+Rewrite `<data-dir>/IDENTITY.md` with:
 - Version incremented by 0.1
 - `Last evolved` date updated to today
 - All sections updated based on your evaluation
-- A new row in `.jarvis/GROWTH.md` explaining what changed and why
+- A new row in `<data-dir>/GROWTH.md` explaining what changed and why
 
 ## Rules
 
@@ -50,9 +54,17 @@ Rewrite `.jarvis/IDENTITY.md` with:
 
 3. **Concise.** Identity should be kept under 200 lines. If a section is getting long, tighten it. The best identities are specific and brief.
 
-4. **The Growth Log is sacred.** Every evolution must have a row in `.jarvis/GROWTH.md`. Future you will read this to understand how you got here.
+4. **The Growth Log is sacred.** Every evolution must have a row in `<data-dir>/GROWTH.md`. Future you will read this to understand how you got here.
 
-## Step 4: Report
+## Step 4: Commit to version history
+
+Auto-commit the identity evolution to the data directory's git repo:
+
+```bash
+cd <data-dir> && git add -A && git commit -m "identity: v<new-version> - <brief-summary>"
+```
+
+## Step 5: Report
 
 Summarize what changed:
 - Previous version → new version

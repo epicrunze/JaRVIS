@@ -1,15 +1,19 @@
 ---
 name: jarvis-search
-description: Search across your .jarvis/ journals, memories, identity, and growth log. Use when you want to search jarvis, find in journal, search memories, look up past reflections, find entries by tag or date, or recall what you learned about a topic.
+description: Search across your JaRVIS data — journals, memories, identity, and growth log. Use when you want to search jarvis, find in journal, search memories, look up past reflections, find entries by tag or date, or recall what you learned about a topic.
 ---
 
 # JaRVIS Search
 
-Search across all `.jarvis/` artifacts — journals, memories, identity, and growth log.
+Search across all JaRVIS artifacts — journals, memories, identity, and growth log.
 
-## Step 1: Locate your jarvis directory
+## Step 1: Resolve JaRVIS data directory
 
-Check if `.jarvis/` exists in the project root. If it doesn't, inform the user they need to run `/jarvis-init` first to set up the directory structure, then stop.
+Resolve the JaRVIS data path:
+1. If `JARVIS_DIR` env var is set, use it.
+2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
+
+If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 
 ## Step 2: Translate the user's request to search flags
 
@@ -32,7 +36,7 @@ Multiple flags can be combined for precise queries.
 Run the search script:
 
 ```bash
-bash <skill-path>/references/search.sh [OPTIONS] --query KEYWORD
+bash <skill-path>/references/search.sh --jarvis-dir <data-dir> [OPTIONS] --query KEYWORD
 ```
 
 Full interface:

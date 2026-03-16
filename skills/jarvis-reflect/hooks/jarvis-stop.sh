@@ -9,7 +9,13 @@
 
 set -euo pipefail
 
-JARVIS_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}/.jarvis"
+if [ -n "${JARVIS_DIR:-}" ]; then
+  : # env var already set
+else
+  _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+  _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+  JARVIS_DIR="$HOME/.jarvis/projects/$_slug"
+fi
 
 # --- If JaRVIS isn't set up, stay silent ---
 if [[ ! -d "$JARVIS_DIR" ]]; then

@@ -1,6 +1,6 @@
 # JaRVIS Scaffolding Templates
 
-Use these templates when creating the `.jarvis/` directory for the first time.
+Use these templates when creating the JaRVIS data directory (`~/.jarvis/projects/<slug>/`) for the first time.
 
 ## IDENTITY.md
 
@@ -36,6 +36,10 @@ No observations yet. Preferences noted during collaboration appear here.
 | Date | Version | What changed | Why |
 |------|---------|-------------|-----|
 ```
+
+## Version control
+
+After scaffolding, run `git init` inside the data directory and create an initial commit. This gives the agent's growth its own version history, independent of any project repo.
 
 ## Journal entry format note
 

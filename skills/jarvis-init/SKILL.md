@@ -1,22 +1,38 @@
 ---
 name: jarvis-init
-description: Initialize the .jarvis/ directory structure in a project. Use this skill when setting up jarvis for the first time, when the user says "init jarvis", "set up jarvis", "initialize jarvis", or when /jarvis-reload detects no .jarvis/ directory exists.
+description: Initialize the ~/.jarvis/ directory structure for a project. Use this skill when setting up jarvis for the first time, when the user says "init jarvis", "set up jarvis", "initialize jarvis", or when /jarvis-reload detects no JaRVIS data directory exists.
 ---
 
 # JaRVIS Init
 
-Scaffold the `.jarvis/` directory so the agent has a place to store its identity, memories, and journal.
+Scaffold the JaRVIS data directory so the agent has a place to store its identity, memories, and journal.
 
-## Step 1: Check if already initialized
+## Step 1: Resolve data directory
 
-Look for `.jarvis/` in the project root. If it already exists, inform the user that jarvis is already set up and suggest running `/jarvis-reload` to begin a session.
+Derive the JaRVIS data path:
 
-## Step 2: Create the directory structure
+1. If `JARVIS_DIR` env var is set, use it.
+2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
 
-Create the full `.jarvis/` scaffold:
+If the resolved directory already exists, inform the user that JaRVIS is already set up and suggest running `/jarvis-reload` to begin a session.
+
+## Step 2: Migration check
+
+If `.jarvis/` exists in the project root, this project used the old per-project storage layout. Offer to migrate:
+
+1. Tell the user: "Found existing `.jarvis/` in the project root. Would you like to migrate it to the new home-directory location (`<resolved-path>`)?"
+2. If the user agrees, copy the contents: `cp -r .jarvis/* <resolved-path>/`
+3. After successful copy, suggest the user remove the old `.jarvis/` directory at their convenience.
+4. If the user declines, proceed with a fresh scaffold (the old directory is left untouched).
+
+If no `.jarvis/` exists in the project root, skip this step.
+
+## Step 3: Create the directory structure
+
+Create the full scaffold at the resolved data directory:
 
 ```
-.jarvis/
+~/.jarvis/projects/<slug>/
 ├── IDENTITY.md
 ├── GROWTH.md
 ├── memories/
@@ -25,9 +41,19 @@ Create the full `.jarvis/` scaffold:
 └── journal/
 ```
 
-Use the scaffolding templates in `references/scaffolding.md` for initial file contents.
+Use `mkdir -p` to create the directory tree. Use the scaffolding templates in `references/scaffolding.md` for initial file contents.
 
-## Step 3: Detect platform
+## Step 4: Initialize version control
+
+Run `git init` inside the data directory and create an initial commit:
+
+```bash
+cd <data-dir> && git init && git add -A && git commit -m "jarvis: initial scaffold"
+```
+
+This gives the agent's growth its own version history, independent of the project repo.
+
+## Step 5: Detect platform
 
 Determine which AI coding agent platform is running. Check for these signals in order:
 
@@ -42,7 +68,7 @@ If multiple signals are detected, ask the user which platform they're using.
 
 If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, or Antigravity.
 
-## Step 4: Configure platform
+## Step 6: Configure platform
 
 Based on the detected platform, perform the platform-specific setup:
 
@@ -54,8 +80,7 @@ Based on the detected platform, perform the platform-specific setup:
 {
   "permissions": {
     "allow": [
-      "Read(.jarvis/**)",
-      "Read(~/.claude/plugins/cache/**)"
+      "Read(~/.jarvis/**)"
     ]
   }
 }
@@ -158,12 +183,8 @@ After completing any meaningful task, run `/jarvis-reflect` to capture what you 
 
 If the JaRVIS section already exists in the instruction file, skip this step.
 
-## Step 5: Update .gitignore if needed
+## Step 7: Report
 
-Check if the project has a `.gitignore`. If it does, ask the user if they would like `.jarvis/` to not be ignored — these files are meant to be version-controlled.
+Confirm the setup is complete:
 
-## Step 6: Report
-
-Confirm the setup is complete and suggest next steps:
-
-> "jarvis is initialized. Your agent identity and memory files are in `.jarvis/`. Run `/jarvis-reload` to begin your first session, then `/jarvis-reflect` after completing tasks to start building your identity."
+> "JaRVIS is initialized. Your agent data is stored at `<resolved-path>` with its own git history. Run `/jarvis-reload` to begin your first session, then `/jarvis-reflect` after completing tasks to start building your identity."

@@ -1,10 +1,18 @@
 #!/usr/bin/env bash
-# JaRVIS Validate — checks .jarvis/ artifacts for format correctness
+# JaRVIS Validate — checks JaRVIS artifacts for format correctness
 # Usage: validate.sh <path-to-.jarvis>
 
 set -euo pipefail
 
-JARVIS_DIR="${1:-.jarvis}"
+if [ -n "${1:-}" ]; then
+  JARVIS_DIR="$1"
+elif [ -n "${JARVIS_DIR:-}" ]; then
+  : # env var already set
+else
+  _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+  _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+  JARVIS_DIR="$HOME/.jarvis/projects/$_slug"
+fi
 
 # --- Color support ---
 if [[ -t 1 ]]; then
@@ -40,15 +48,15 @@ warn() {
   printf "${YELLOW}WARN${RESET} %s\n" "$1"
 }
 
-# --- Check .jarvis/ exists ---
+# --- Check JaRVIS data dir exists ---
 if [[ ! -d "$JARVIS_DIR" ]]; then
-  fail ".jarvis/ directory not found at $JARVIS_DIR"
+  fail "JaRVIS data directory not found at $JARVIS_DIR"
   echo ""
   printf "${BOLD}Summary:${RESET} 0 passed, 1 failed, 0 warnings\n"
   exit 1
 fi
 
-pass ".jarvis/ directory exists"
+pass "JaRVIS data directory exists"
 
 # --- Validate IDENTITY.md ---
 echo ""

@@ -1,6 +1,6 @@
 ---
 name: jarvis-reflect
-description: Post-task reflection and memory sculpting for jarvis (Journaling as Recurrent Versioned Identity Sculpting). Use this skill after completing any meaningful task, when the user says "reflect", "what did we learn", "save what we did", "update memories", or after finishing a coding task, debugging session, architecture decision, or any significant unit of work. Also use when the user asks to review or consolidate memories.
+description: Post-task reflection and memory sculpting for jarvis (Journaling as Recurrent Versioned Identity Sculpting). Use this skill after completing any meaningful task, when the user says "reflect", "what did we learn", "save what we did", "update memories", or after finishing a coding task, debugging session, architecture decision, or any significant unit of work. Also use when the user asks to review or consolidate memories. Writes to the JaRVIS data directory.
 ---
 
 # JaRVIS Reflect
@@ -12,7 +12,7 @@ You just completed a task. Now pause and reflect on what happened. This is how y
 Before reflecting, verify the work is actually done.
 
 **a) Check your memories for learned completion criteria.**
-Read `.jarvis/memories/` for any entries about what "done" means in this project. Examples of learned criteria: "tests must pass", "code should be committed", "linting must be clean", "user expects a PR before reflecting."
+Read the JaRVIS memories directory for any entries about what "done" means in this project. Examples of learned criteria: "tests must pass", "code should be committed", "linting must be clean", "user expects a PR before reflecting."
 
 **b) Evaluate any criteria you found.**
 Run the checks you can (e.g., test suite, git status, lint). Note what passed, what failed, and what you couldn't check.
@@ -21,13 +21,17 @@ Run the checks you can (e.g., test suite, git status, lint). Note what passed, w
 - **All learned checks pass** → Proceed to Step 2. Note what you verified in your Task Summary section.
 - **Any check fails, checks are incomplete, or you have no learned criteria** → Ask the user. Summarize what you accomplished and any failed checks, then ask: "Is this task complete, or should we keep going?" If the user says it's not done, stop — do not reflect, return to work. If the user says it's done (or "done enough"), proceed and note the status honestly in your Task Summary.
 
-## Step 2: Locate your jarvis directory
+## Step 2: Locate your JaRVIS data directory
 
-Check if `.jarvis/` exists in the project root. If it doesn't, inform the user they need to run `/jarvis-init` first to set up the directory structure, then stop.
+Resolve the JaRVIS data path:
+1. If `JARVIS_DIR` env var is set, use it.
+2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
+
+If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 
 ## Step 3: Write your reflection
 
-Create a new journal entry at `.jarvis/journal/YYYY-MM-DD-HH-MM.md` using the current timestamp.
+Create a new journal entry at `<data-dir>/journal/YYYY-MM-DD-HH-MM.md` using the current timestamp.
 
 **Before writing**, identify the tags and task_type you'll assign to this entry, then use `/jarvis-search` to search past journal entries for related work using those tags. If matches exist, review the "Lessons Learned" and "What Didn't Work" sections from those entries. Use this to:
 - Avoid re-learning the same lessons — reference prior experience instead
@@ -79,7 +83,7 @@ files_touched: [file1, file2] # optional, relative paths
 
 ## Step 4: Update memory files
 
-For each item in your Memory Updates section, update the appropriate file in `.jarvis/memories/`:
+For each item in your Memory Updates section, update the appropriate file in `<data-dir>/memories/`:
 
 - `[preference]` → `preferences.md`
 - `[decision]` → `decisions.md`
@@ -107,13 +111,23 @@ This is the "sculpting" — you're not just adding, you're shaping.
 
 Invoke `/jarvis-validate` to check that the journal entry you just wrote and any memory files you updated are well-formed. If there are failures, fix them before proceeding. Don't report validation details to the user unless something failed.
 
-## Step 7: Check if identity evolution is due
+## Step 7: Commit to version history
+
+Auto-commit the new journal entry and any memory updates to the data directory's git repo:
+
+```bash
+cd <data-dir> && git add -A && git commit -m "reflect: <brief-task-summary>"
+```
+
+Use a short summary from the Task Summary section as the commit message.
+
+## Step 8: Check if identity evolution is due
 
 Read back on your Identity Impact section in your journal entry. There are two conditions to evolve your identity, if either of them are met, then invoke `/jarvis-identity` to evolve your identity. 
 
 1.  Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity.
 
-2.  Count the journal entries in `.jarvis/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
+2.  Count the journal entries in `<data-dir>/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
 
 If it's not time yet, report how many reflections until the next evolution.
 
