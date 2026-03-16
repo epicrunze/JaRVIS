@@ -9,7 +9,7 @@ Check that your JaRVIS artifacts are well-formed and complete.
 
 ## Step 1: Resolve JaRVIS data directory
 
-Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
+Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
 
 If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 
@@ -18,7 +18,7 @@ If the resolved directory doesn't exist, inform the user they need to run `/jarv
 Run the validation script against the JaRVIS data directory:
 
 ```bash
-bash <skill-path>/scripts/validate.sh <data-dir>
+bash <skill-path>/scripts/validate.sh $JARVIS_DIR
 ```
 
 The script checks:

@@ -7,9 +7,8 @@
 #   2. Check if already initialized (exit 0 if so)
 #   3. Optionally migrate from old .jarvis/ layout
 #   4. Scaffold directory structure + template files
-#   5. Install resolve-dir.sh to ~/.jarvis/bin/
-#   6. git init + initial commit
-#   7. Print the resolved JARVIS_DIR path
+#   5. git init + initial commit
+#   6. Print the resolved JARVIS_DIR path
 #
 # The agent handles platform detection and configuration (steps 5-6 of SKILL.md).
 
@@ -134,11 +133,6 @@ No consolidated decisions yet.
 ## Recent
 EOF
 fi
-
-# --- Install resolve-dir.sh to ~/.jarvis/bin/ ---
-mkdir -p "$HOME/.jarvis/bin"
-cp "$SCRIPT_DIR/resolve-dir.sh" "$HOME/.jarvis/bin/resolve-dir.sh"
-chmod +x "$HOME/.jarvis/bin/resolve-dir.sh"
 
 # --- Git init + initial commit ---
 cd "$JARVIS_DIR"

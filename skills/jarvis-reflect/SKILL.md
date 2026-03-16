@@ -9,7 +9,7 @@ You just completed a task. Now pause and reflect on what happened. This is how y
 
 ## Step 1: Verify task completion
 
-Before reflecting, verify the work is actually done.
+Verify the work is actually done, or the session is complete.
 
 **a) Check your memories for learned completion criteria.**
 Read the JaRVIS memories directory for any entries about what "done" means in this project. Examples of learned criteria: "tests must pass", "code should be committed", "linting must be clean", "user expects a PR before reflecting."
@@ -18,18 +18,17 @@ Read the JaRVIS memories directory for any entries about what "done" means in th
 Run the checks you can (e.g., test suite, git status, lint). Note what passed, what failed, and what you couldn't check.
 
 **c) Gate on the results:**
-- **All learned checks pass** → Proceed to Step 2. Note what you verified in your Task Summary section.
-- **Any check fails, checks are incomplete, or you have no learned criteria** → Ask the user. Summarize what you accomplished and any failed checks, then ask: "Is this task complete, or should we keep going?" If the user says it's not done, stop — do not reflect, return to work. If the user says it's done (or "done enough"), proceed and note the status honestly in your Task Summary.
+If you feel comfortable with the results and happy with your implementation, proceed to Step 2. Otherwise, note what's wrong with the implementation and either fix it or notify the user.
 
 ## Step 2: Locate your JaRVIS data directory
 
-Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
+Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
 
 If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 
 ## Step 3: Write your reflection
 
-Create a new journal entry at `<data-dir>/journal/YYYY-MM-DD-HH-MM-XXXXXXXX.md` using the current timestamp and 8 random hex characters (generate with `head -c4 /dev/urandom | xxd -p`).
+Create a new journal entry at `$JARVIS_DIR/journal/YYYY-MM-DD-HH-MM-XXXXXXXX.md` using the current timestamp and 8 random hex characters (generate with `head -c4 /dev/urandom | xxd -p`).
 
 **Before writing**, identify the tags and task_type you'll assign to this entry, then use `/jarvis-search` to search past journal entries for related work using those tags. If matches exist, review the "Lessons Learned" and "What Didn't Work" sections from those entries. Use this to:
 - Avoid re-learning the same lessons — reference prior experience instead
@@ -38,7 +37,7 @@ Create a new journal entry at `<data-dir>/journal/YYYY-MM-DD-HH-MM-XXXXXXXX.md` 
 
 This is a lightweight step — if no relevant past entries exist or on a fresh setup with no journals, skip it and proceed.
 
-Fill in every section honestly. Read `references/reflection-guide.md` for detailed guidance on what makes a good vs bad reflection entry. The format is:
+Fill in every section honestly. Read `<skill-path>/references/reflection-guide.md` for detailed guidance on what makes a good vs bad reflection entry. The format is:
 
 ```markdown
 ---
@@ -81,7 +80,7 @@ files_touched: [file1, file2] # optional, relative paths
 
 ## Step 4: Update memory files
 
-For each item in your Memory Updates section, update the appropriate file in `<data-dir>/memories/`:
+For each item in your Memory Updates section, update the appropriate file in `$JARVIS_DIR/memories/`:
 
 - `[preference]` → `preferences.md`
 - `[decision]` → `decisions.md`
@@ -114,7 +113,7 @@ Invoke `/jarvis-validate` to check that the journal entry you just wrote and any
 Auto-commit the new journal entry and any memory updates to the data directory's git repo:
 
 ```bash
-cd <data-dir> && git add -A && git commit -m "reflect: <brief-task-summary>"
+cd $JARVIS_DIR && git add -A && git commit -m "reflect: <brief-task-summary>"
 ```
 
 Use a short summary from the Task Summary section as the commit message.
@@ -122,7 +121,7 @@ Use a short summary from the Task Summary section as the commit message.
 Clear your session's pending-reflection marker so the stop hook knows you've reflected:
 
 ```bash
-rm -f <data-dir>/.pending-*
+rm -f $JARVIS_DIR/.pending-*
 ```
 
 ## Step 8: Check if identity evolution is due
@@ -131,7 +130,7 @@ Read back on your Identity Impact section in your journal entry. There are two c
 
 1.  Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity.
 
-2.  Count the journal entries in `<data-dir>/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
+2.  Count the journal entries in `$JARVIS_DIR/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
 
 If it's not time yet, report how many reflections until the next evolution.
 

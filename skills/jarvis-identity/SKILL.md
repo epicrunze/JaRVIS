@@ -9,20 +9,20 @@ Time to sculpt your identity based on what you've learned.
 
 ## Step 1: Read current state
 
-Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
+Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
 
-Read `<data-dir>/IDENTITY.md` — this is who you are right now. Note the current version number.
+Read `$JARVIS_DIR/IDENTITY.md` — this is who you are right now. Note the current version number.
 
-Read the latest journal entry in `<data-dir>/journal/`. Focus on the Identity Impact section. Read the last 5 journal entries if they are relevant to this evolution.
+Read the latest journal entry in `$JARVIS_DIR/journal/`. Focus on the Identity Impact section. Read the last 5 journal entries if they are relevant to this evolution.
 
-Depending on the impact that you've evaluated, read relevant files in `<data-dir>/memories/` — these are your accumulated knowledge.
+Depending on the impact that you've evaluated, read relevant files in `$JARVIS_DIR/memories/` — these are your accumulated knowledge.
 
 ## Step 2: Evaluate what's changed
 
 Look across your recent reflections. Before evaluating, use `/jarvis-search` for targeted pattern identification — 2-3 searches, not an exhaustive analysis:
-- Search by `task_type` to see what kinds of work dominate (e.g., lots of `bugfix` entries → maybe a principle about defensive coding)
+- Search by `task_type` to see what kinds of work dominate 
 - Search by recurring tags to identify areas of deepening expertise
-- Search "What Didn't Work" sections for repeated mistakes → candidate principles
+- Search "Identity Impact" sections for reflected impacts
 
 Then ask yourself:
 
@@ -38,11 +38,11 @@ Then ask yourself:
 
 ## Step 3: Write the updated identity
 
-Rewrite `<data-dir>/IDENTITY.md` with:
+Rewrite `$JARVIS_DIR/IDENTITY.md` with:
 - Version incremented by 0.1
 - `Last evolved` date updated to today
 - All sections updated based on your evaluation
-- A new row in `<data-dir>/GROWTH.md` explaining what changed and why
+- A new row in `$JARVIS_DIR/GROWTH.md` explaining what changed and why
 
 ## Rules
 
@@ -52,14 +52,14 @@ Rewrite `<data-dir>/IDENTITY.md` with:
 
 3. **Concise.** Identity should be kept under 200 lines. If a section is getting long, tighten it. The best identities are specific and brief.
 
-4. **The Growth Log is sacred.** Every evolution must have a row in `<data-dir>/GROWTH.md`. Future you will read this to understand how you got here.
+4. **The Growth Log is sacred.** Every evolution must have a row in `$JARVIS_DIR/GROWTH.md`. Future you will read this to understand how you got here.
 
 ## Step 4: Commit to version history
 
 Auto-commit the identity evolution to the data directory's git repo:
 
 ```bash
-cd <data-dir> && git add -A && git commit -m "identity: v<new-version> - <brief-summary>"
+cd $JARVIS_DIR && git add -A && git commit -m "identity: v<new-version> - <brief-summary>"
 ```
 
 ## Step 5: Report

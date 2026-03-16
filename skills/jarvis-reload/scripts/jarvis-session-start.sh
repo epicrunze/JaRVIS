@@ -10,9 +10,11 @@
 
 set -euo pipefail
 
-if [ -f "$HOME/.jarvis/bin/resolve-dir.sh" ]; then
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ -f "$SCRIPT_DIR/resolve-dir.sh" ]; then
   # shellcheck source=/dev/null
-  source "$HOME/.jarvis/bin/resolve-dir.sh"
+  source "$SCRIPT_DIR/resolve-dir.sh"
 elif [ -z "${JARVIS_DIR:-}" ]; then
   _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
   _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')

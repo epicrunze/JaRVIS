@@ -9,7 +9,7 @@ Search across all JaRVIS artifacts — journals, memories, identity, and growth 
 
 ## Step 1: Resolve JaRVIS data directory
 
-Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
+Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
 
 If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 
@@ -34,12 +34,12 @@ Multiple flags can be combined for precise queries.
 Run the search script:
 
 ```bash
-bash <skill-path>/scripts/search.sh --jarvis-dir <data-dir> [OPTIONS] --query KEYWORD
+bash <skill-path>/scripts/search.sh --jarvis-dir $JARVIS_DIR [OPTIONS] --query KEYWORD
 ```
 
 Full interface:
 ```
-search.sh [OPTIONS] [--query KEYWORD]
+<skill-path>/scripts/search.sh [OPTIONS] [--query KEYWORD]
   --type journal|memory|identity|growth   (default: all)
   --from YYYY-MM-DD                       date range start
   --to YYYY-MM-DD                         date range end

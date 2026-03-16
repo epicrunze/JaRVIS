@@ -19,7 +19,7 @@ If no `.jarvis/` exists in the project root, skip this step.
 
 ## Step 2: Scaffold data directory
 
-Run the init script to resolve the path, scaffold the directory, install `resolve-dir.sh`, and create a git repo:
+Run the init script to resolve the path, scaffold the directory, and create a git repo:
 
 ```bash
 bash <skill-path>/scripts/jarvis-init.sh [--migrate] [--project-dir <path>]
@@ -63,7 +63,6 @@ Based on the detected platform, perform the platform-specific setup:
       "Edit(~/.jarvis/projects/<slug>/**)",
       "Write(~/.jarvis/projects/<slug>/**)",
       "Bash(cd ~/.jarvis/projects/<slug> && git *)",
-      "Bash(source ~/.jarvis/bin/resolve-dir.sh)",
       "Bash(bash <detected-skills-path>/jarvis-validate/scripts/validate.sh *)",
       "Bash(bash <detected-skills-path>/jarvis-search/scripts/search.sh *)",
       "Bash(bash <detected-skills-path>/jarvis-init/scripts/jarvis-init.sh *)"
@@ -72,7 +71,7 @@ Based on the detected platform, perform the platform-specific setup:
 }
 ```
 
-For the script permissions, determine `<detected-skills-path>`: if `.claude/skills/jarvis-validate/scripts/validate.sh` exists in the project root, skills are installed locally — use `.claude/skills` as the prefix. Otherwise use `~/.claude/skills` (global install). Apply this prefix to all three skill script paths. The `resolve-dir.sh` path is always `~/.jarvis/bin/resolve-dir.sh` (fixed location).
+For the script permissions, determine `<detected-skills-path>`: if `.claude/skills/jarvis-validate/scripts/validate.sh` exists in the project root, skills are installed locally — use `.claude/skills` as the prefix. Otherwise use `~/.claude/skills` (global install). Apply this prefix to all three skill script paths.
 
 **Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.local.json` (the same file from the permissions step):
 
@@ -145,31 +144,11 @@ For the script permissions, determine `<detected-skills-path>`: if `.claude/skil
 
 ### If GitHub Copilot:
 
-**Instruction file:** Read the project's `.github/copilot-instructions.md` (create the `.github/` directory and file if they don't exist). If it does not already contain a `## JaRVIS` section, append the following:
-
-```markdown
-
-## JaRVIS
-
-Run `/jarvis-reload` at the start of each session to load your identity and memories.
-Use `/jarvis-reload` to reload context mid-session if needed.
-After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-```
+**Instruction file:** Read the project's `.github/copilot-instructions.md` (create the `.github/` directory and file if they don't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/copilot-instructions.example` to the end of the file (preceded by a blank line).
 
 ### If Antigravity:
 
-**Instruction file:** Read the project's `AGENTS.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the following:
-
-```markdown
-
-## JaRVIS
-
-Run `/jarvis-reload` at the start of each session to load your identity and memories.
-Use `/jarvis-reload` to reload context mid-session if needed.
-After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-```
-
-If the JaRVIS section already exists in the instruction file, skip this step.
+**Instruction file:** Read the project's `AGENTS.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/AGENTS.md.example` to the end of the file (preceded by a blank line).
 
 ### If Other (generic platform):
 
@@ -177,7 +156,7 @@ If the JaRVIS section already exists in the instruction file, skip this step.
 
 **Instruction file:** Ask the user for their platform's instruction file path (default: `AGENTS.md`). Read the file (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/AGENTS.md.example` to the end of the file (preceded by a blank line).
 
-No hooks are configured for generic platforms. Inform the user they should run `/jarvis-reload` manually at the start of each session.
+Ask users if hooks are available in their platform, and do some research on the docs for their platform. Try to work with the user to set up hooks, but if it's not supported, inform the user they should run `/jarvis-reload` manually at the start of each session.
 
 ## Step 5: Report
 

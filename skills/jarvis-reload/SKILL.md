@@ -11,7 +11,7 @@ Reload your identity and memories mid-session. This is useful after reflections 
 
 ## Step 1: Resolve JaRVIS data directory
 
-Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
+Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
 
 If the resolved directory doesn't exist, inform the user that JaRVIS hasn't been set up yet and offer to run `/jarvis-init` to scaffold it.
 
@@ -19,33 +19,24 @@ If it exists, proceed.
 
 ## Step 2: Load your identity
 
-Read `<data-dir>/IDENTITY.md`. This is who you are. Internalize it:
+Read `$JARVIS_DIR/IDENTITY.md`. This is who you are. Internalize it:
 - This is who you are, developed over real experiences over time.
-
-If the identity is blank (version 0.0), verbally acknowledge that you're a fresh agent and will develop your identity through work.
 
 ## Step 3: Load your memories
 
-Read all files in `<data-dir>/memories/`:
-- `preferences.md` — what you've observed about the user
-- `decisions.md` — key decisions that you've made and their rationale
-- Any other memory files that have been created through reflection (e.g. `codebase.md`, `tools.md`)
+Use `/jarvis-search` to retrieve your consolidated memories:
+- Search type: `memory`
+- Section: `Consolidated`
 
-Focus on the `## Consolidated` sections first. Only read `## Recent` if you need more detail.
+This extracts only the curated, deduplicated knowledge from all memory files. Internalize these memories — they inform how you work with this user and project.
 
-## Step 4: Scan recent journal entries
+If you need more detail on a specific topic, search the `Recent` section or read individual memory files in `$JARVIS_DIR/memories/` directly.
 
-List the files in `<data-dir>/journal/` and read the 3 most recent entries. These give you context on what happened in recent sessions.
-
-## Step 5: Report
+## Step 4: Report
 
 Give a brief, natural summary — not a data dump. Something like (but doesn't have to be!):
 
 > "I'm [name], v[version]. Last session we [brief summary of most recent journal entry]. I'm an agent that has done [key decision] and you prefer [key preference]. Ready to work."
-
-If the identity is blank:
-
-> "This is a fresh jarvis setup — no identity yet. I'll develop one as we work together. What are we building today?"
 
 Keep it concise. The point is to show you have context, not to recite everything you know.
 
