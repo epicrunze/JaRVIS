@@ -2,7 +2,7 @@
 
 **Journaling As Recurrent Versioned Identity Sculpting**
 
-A set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your home directory.
+A set of agent skills for Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your home directory.
 
 ## What it does
 
@@ -60,7 +60,7 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
    - If .cursor/ exists → SKILLS_DIR=".cursor/skills"
    - If .github/ exists → SKILLS_DIR=".github/skills"
    - If .agent/ exists or AGENTS.md exists → SKILLS_DIR=".agent/skills"
-   - If none match, ask me which platform I'm using.
+   - If none match, ask me which platform I'm using and where skills should be installed.
 
 3. Create the skills directory if needed: mkdir -p "$SKILLS_DIR"
 
@@ -72,7 +72,9 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
 6. If JaRVIS hasn't been set up for this project yet, run /jarvis-init to complete setup. If JaRVIS is already set up, skip this step — the update is complete.
 ```
 
-Works with Claude Code, Cursor, GitHub Copilot, and Antigravity. See [`install/PROMPT.md`](install/PROMPT.md) for details.
+Works with Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents. See [`install/PROMPT.md`](install/PROMPT.md) for details.
+
+> **Other platforms:** If your agent doesn't match any of the detected platforms, the install prompt will ask you where to put skills. `/jarvis-init` will then ask for your instruction file path.
 
 ### Option C: Manual install
 
@@ -104,6 +106,14 @@ cp -r skills/* .github/skills/
 cp -r skills/* .agent/skills/
 ```
 
+#### Other platforms
+
+Copy skills into your platform's skills directory (e.g., `.agent/skills/` or wherever your platform loads skills from):
+
+```bash
+cp -r skills/* <your-skills-directory>/
+```
+
 ### Add to your instruction file
 
 Add the JaRVIS section to your platform's instruction file. See the example files for what to add:
@@ -114,6 +124,7 @@ Add the JaRVIS section to your platform's instruction file. See the example file
 | Cursor | `.cursorrules` | `skills/jarvis-init/references/cursorrules.example` |
 | GitHub Copilot | `.github/copilot-instructions.md` | `skills/jarvis-init/references/copilot-instructions.example` |
 | Antigravity | `AGENTS.md` | `skills/jarvis-init/references/AGENTS.md.example` |
+| Other | Your instruction file | `skills/jarvis-init/references/AGENTS.md.example` |
 
 Then run `/jarvis-init` to scaffold the JaRVIS data directory. The init skill will detect your platform and configure things automatically.
 

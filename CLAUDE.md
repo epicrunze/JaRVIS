@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent skills for Claude Code, Cursor, GitHub Copilot, and Antigravity that provide persistent memory, post-task reflection, and self-evolving identity. It is a **skill distribution project**, not a traditional application — there is no build system, no runtime code, and no tests. Skills are pure instruction sets written as markdown.
+JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent skills for Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents that provide persistent memory, post-task reflection, and self-evolving identity. It is a **skill distribution project**, not a traditional application — there is no build system, no runtime code, and no tests. Skills are pure instruction sets written as markdown.
 
 ## Repository Structure
 
@@ -33,6 +33,7 @@ Skills are installed by copying skill folders into the platform's skills directo
 - **Cursor:** `.cursor/skills/`
 - **GitHub Copilot:** `.github/skills/`
 - **Antigravity:** `.agent/skills/`
+- **Other:** User-specified directory (default: `.agent/skills/`)
 
 ## Architecture
 

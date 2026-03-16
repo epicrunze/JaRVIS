@@ -5,5 +5,3 @@ A Stop hook will remind you to reflect before ending a session if you haven't al
 Use `/jarvis-reload` to reload context mid-session if needed.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
 You MUST run `/jarvis-reflect` before ending any session — do not end without reflecting.
-Use `/jarvis-validate` to check JaRVIS data format health.
-Use `/jarvis-search` to find past entries by keyword, tag, date, or section.

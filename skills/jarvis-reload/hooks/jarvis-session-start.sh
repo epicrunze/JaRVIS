@@ -3,7 +3,7 @@
 # Automatically loads agent identity and memories at session start.
 # Output goes to stdout and becomes part of Claude's context.
 #
-# Installation: Add to your platform's hook configuration (e.g., .claude/settings.json for Claude Code)
+# Installation: Add to your platform's hook configuration (e.g., .claude/settings.local.json for Claude Code)
 # See skills/jarvis-init/references/CLAUDE.md.example for configuration details.
 # This script lives inside the jarvis-reload skill so the documented
 # install paths (.claude/skills/jarvis-reload/hooks/...) work as-is.

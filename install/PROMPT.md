@@ -1,6 +1,6 @@
 # One-Prompt Install / Update
 
-Copy the prompt below and paste it into your AI coding agent (Cursor, GitHub Copilot, Antigravity, or Claude Code) to install or update JaRVIS in one step.
+Copy the prompt below and paste it into your AI coding agent (Claude Code, Cursor, GitHub Copilot, Antigravity, or any other AI coding agent) to install or update JaRVIS in one step.
 
 ## How to use
 
@@ -21,7 +21,7 @@ Install or update JaRVIS (https://github.com/epicrunze/JaRVIS) in this project. 
    - If .cursor/ exists → SKILLS_DIR=".cursor/skills"
    - If .github/ exists → SKILLS_DIR=".github/skills"
    - If .agent/ exists or AGENTS.md exists → SKILLS_DIR=".agent/skills"
-   - If none match, ask me which platform I'm using.
+   - If none match, ask me which platform I'm using and where skills should be installed.
 
 3. Create the skills directory if needed: mkdir -p "$SKILLS_DIR"
 

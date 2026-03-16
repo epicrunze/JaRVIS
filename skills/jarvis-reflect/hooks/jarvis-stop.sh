@@ -4,7 +4,7 @@
 # Checks if a journal entry was created during this session.
 # If not, reminds the agent to reflect before ending.
 #
-# Installation: Add to your platform's hook configuration (e.g., .claude/settings.json for Claude Code)
+# Installation: Add to your platform's hook configuration (e.g., .claude/settings.local.json for Claude Code)
 # See skills/jarvis-init/references/CLAUDE.md.example for configuration details.
 
 set -euo pipefail

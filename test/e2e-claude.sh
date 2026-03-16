@@ -143,14 +143,14 @@ else
 fi
 
 # Check hook setup
-if [[ -f "$TEMP_PROJECT/.claude/settings.json" ]]; then
-  if grep -q "jarvis-session-start" "$TEMP_PROJECT/.claude/settings.json"; then
-    pass "settings.json has hook entry"
+if [[ -f "$TEMP_PROJECT/.claude/settings.local.json" ]]; then
+  if grep -q "jarvis-session-start" "$TEMP_PROJECT/.claude/settings.local.json"; then
+    pass "settings.local.json has hook entry"
   else
-    fail "settings.json missing hook entry"
+    fail "settings.local.json missing hook entry"
   fi
 else
-  fail "settings.json not found"
+  fail "settings.local.json not found"
 fi
 
 # ============================================================

@@ -64,9 +64,9 @@ Determine which AI coding agent platform is running. Check for these signals in 
 | `.github/` directory with copilot config exists | **GitHub Copilot** |
 | `.agent/` directory or `AGENTS.md` exists | **Antigravity** |
 
-If multiple signals are detected, ask the user which platform they're using.
+If multiple signals are detected, ask the user which platform they're using (include "Other" as an option).
 
-If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, or Antigravity.
+If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, Antigravity, or Other.
 
 ## Step 6: Configure platform
 
@@ -74,7 +74,7 @@ Based on the detected platform, perform the platform-specific setup:
 
 ### If Claude Code:
 
-**Permissions:** Read `.claude/settings.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules:
+**Permissions:** Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules:
 
 ```json
 {
@@ -86,7 +86,7 @@ Based on the detected platform, perform the platform-specific setup:
 }
 ```
 
-**Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.json` (the same file from the permissions step):
+**Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.local.json` (the same file from the permissions step):
 
 1. Determine the hook script path: if `.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reload/hooks/jarvis-session-start.sh` (global install).
 2. Ensure the `hooks` object exists in the settings JSON. Ensure `hooks.SessionStart` is an array. Each entry in `hooks.SessionStart` must be an object with `matcher` (string) and `hooks` (array) keys.
@@ -103,7 +103,7 @@ Based on the detected platform, perform the platform-specific setup:
      ]
    }
    ```
-5. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
+5. Write the merged JSON back to `.claude/settings.local.json`, preserving all existing hooks and other settings.
 6. **Stop hook:** Determine the stop hook script path: if `.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reflect/hooks/jarvis-stop.sh` (global install).
 7. Ensure `hooks.Stop` is an array. Each entry must be an object with `matcher` (string) and `hooks` (array) keys.
 8. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing `hooks.Stop` entries' `hooks` sub-array command strings.
@@ -119,7 +119,7 @@ Based on the detected platform, perform the platform-specific setup:
      ]
    }
    ```
-10. Write the merged JSON back to `.claude/settings.json`, preserving all existing hooks and other settings.
+10. Write the merged JSON back to `.claude/settings.local.json`, preserving all existing hooks and other settings.
 
 **Instruction file:** Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/CLAUDE.md.example` to the end of the file (preceded by a blank line).
 
@@ -182,6 +182,14 @@ After completing any meaningful task, run `/jarvis-reflect` to capture what you 
 ```
 
 If the JaRVIS section already exists in the instruction file, skip this step.
+
+### If Other (generic platform):
+
+**Skills directory:** Ask the user for their platform's skills directory path (default: `.agent/skills/`).
+
+**Instruction file:** Ask the user for their platform's instruction file path (default: `AGENTS.md`). Read the file (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/AGENTS.md.example` to the end of the file (preceded by a blank line).
+
+No hooks are configured for generic platforms. Inform the user they should run `/jarvis-reload` manually at the start of each session.
 
 ## Step 7: Report
 
