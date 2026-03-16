@@ -226,11 +226,11 @@ if [[ -d "$JARVIS_DIR/journal" ]]; then
       echo ""
       printf "${BOLD}%s${RESET}\n" "--- $basename_file ---"
 
-      # Check filename format: YYYY-MM-DD-HH-MM.md
-      if echo "$basename_file" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'; then
+      # Check filename format: YYYY-MM-DD-HH-MM.md or YYYY-MM-DD-HH-MM-XXXXXXXX.md
+      if echo "$basename_file" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{2}-[0-9]{2}(-[0-9a-f]{8})?\.md$'; then
         pass "Filename format valid"
       else
-        fail "Filename should match YYYY-MM-DD-HH-MM.md"
+        fail "Filename should match YYYY-MM-DD-HH-MM.md or YYYY-MM-DD-HH-MM-XXXXXXXX.md"
       fi
 
       # Check for YAML frontmatter

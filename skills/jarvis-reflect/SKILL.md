@@ -29,7 +29,7 @@ If the resolved directory doesn't exist, inform the user they need to run `/jarv
 
 ## Step 3: Write your reflection
 
-Create a new journal entry at `<data-dir>/journal/YYYY-MM-DD-HH-MM.md` using the current timestamp.
+Create a new journal entry at `<data-dir>/journal/YYYY-MM-DD-HH-MM-XXXXXXXX.md` using the current timestamp and 8 random hex characters (generate with `head -c4 /dev/urandom | xxd -p`).
 
 **Before writing**, identify the tags and task_type you'll assign to this entry, then use `/jarvis-search` to search past journal entries for related work using those tags. If matches exist, review the "Lessons Learned" and "What Didn't Work" sections from those entries. Use this to:
 - Avoid re-learning the same lessons — reference prior experience instead
@@ -118,6 +118,12 @@ cd <data-dir> && git add -A && git commit -m "reflect: <brief-task-summary>"
 ```
 
 Use a short summary from the Task Summary section as the commit message.
+
+Clear your session's pending-reflection marker so the stop hook knows you've reflected:
+
+```bash
+rm -f <data-dir>/.pending-*
+```
 
 ## Step 8: Check if identity evolution is due
 

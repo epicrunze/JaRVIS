@@ -62,11 +62,17 @@ Based on the detected platform, perform the platform-specific setup:
       "Read(~/.jarvis/projects/<slug>/**)",
       "Edit(~/.jarvis/projects/<slug>/**)",
       "Write(~/.jarvis/projects/<slug>/**)",
-      "Bash(cd ~/.jarvis/projects/<slug> && git *)"
+      "Bash(cd ~/.jarvis/projects/<slug> && git *)",
+      "Bash(source ~/.jarvis/bin/resolve-dir.sh)",
+      "Bash(bash <detected-skills-path>/jarvis-validate/references/validate.sh *)",
+      "Bash(bash <detected-skills-path>/jarvis-search/references/search.sh *)",
+      "Bash(bash <detected-skills-path>/jarvis-init/references/jarvis-init.sh *)"
     ]
   }
 }
 ```
+
+For the script permissions, determine `<detected-skills-path>`: if `.claude/skills/jarvis-validate/references/validate.sh` exists in the project root, skills are installed locally — use `.claude/skills` as the prefix. Otherwise use `~/.claude/skills` (global install). Apply this prefix to all three skill script paths. The `resolve-dir.sh` path is always `~/.jarvis/bin/resolve-dir.sh` (fixed location).
 
 **Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.local.json` (the same file from the permissions step):
 

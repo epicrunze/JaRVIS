@@ -153,7 +153,7 @@ Everything lives in `~/.jarvis/projects/<slug>/` under your home directory (wher
 │   ├── decisions.md         # Key decisions with rationale
 │   └── ...                  # Additional files created through reflection
 └── journal/
-    ├── 2026-03-10-14-30.md  # Reflection entries
+    ├── 2026-03-10-14-30-a1b2c3d4.md  # Reflection entries
     └── ...
 ```
 

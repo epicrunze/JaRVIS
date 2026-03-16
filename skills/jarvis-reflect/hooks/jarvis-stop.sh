@@ -2,13 +2,37 @@
 # JaRVIS Stop Hook
 # Fires when the agent is about to end its turn.
 # Checks if a journal entry was created during this session.
-# If not, reminds the agent to reflect before ending.
+# If not, blocks the agent with a reminder to reflect before ending.
+#
+# Claude Code Stop hooks receive JSON on stdin with a stop_hook_active flag.
+# When stop_hook_active is true, we already blocked once — exit silently to prevent loops.
+# Output format: {"decision": "block", "reason": "..."} to block the agent.
 #
 # Installation: Add to your platform's hook configuration (e.g., .claude/settings.local.json for Claude Code)
 # See skills/jarvis-init/references/CLAUDE.md.example for configuration details.
 
 set -euo pipefail
 
+# --- Read hook input from stdin ---
+INPUT=$(cat 2>/dev/null || true)
+
+# --- Check stop_hook_active to prevent infinite loop ---
+if command -v jq &>/dev/null; then
+  STOP_HOOK_ACTIVE=$(echo "$INPUT" | jq -r '.stop_hook_active // false' 2>/dev/null)
+else
+  # Fallback: grep for the flag in raw JSON
+  if echo "$INPUT" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'; then
+    STOP_HOOK_ACTIVE="true"
+  else
+    STOP_HOOK_ACTIVE="false"
+  fi
+fi
+
+if [ "$STOP_HOOK_ACTIVE" = "true" ]; then
+  exit 0
+fi
+
+# --- Resolve JARVIS_DIR ---
 if [ -f "$HOME/.jarvis/bin/resolve-dir.sh" ]; then
   # shellcheck source=/dev/null
   source "$HOME/.jarvis/bin/resolve-dir.sh"
@@ -24,18 +48,20 @@ if [[ ! -d "$JARVIS_DIR" ]]; then
   exit 0
 fi
 
-# --- If no journal directory, stay silent ---
-if [[ ! -d "$JARVIS_DIR/journal" ]]; then
-  exit 0
+# --- Read session_id from stdin ---
+SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+# fallback without jq
+if [[ -z "$SESSION_ID" ]]; then
+  SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
 fi
 
-# --- Check for journal entries created in the last 2 hours ---
-recent_entries=$(find "$JARVIS_DIR/journal" -name '*.md' -mmin -120 2>/dev/null | head -1)
-
-if [[ -z "$recent_entries" ]]; then
-  cat <<'EOF'
-<jarvis-stop-reminder>
-You haven't reflected on this session yet. Run `/jarvis-reflect` before ending.
-</jarvis-stop-reminder>
-EOF
+# --- Check for this session's pending marker ---
+if [[ -n "$SESSION_ID" && -f "$JARVIS_DIR/.pending-$SESSION_ID" ]]; then
+  # This session hasn't reflected yet → block
+  REASON="You haven't reflected on this session yet. Run /jarvis-reflect before ending."
+  if command -v jq &>/dev/null; then
+    jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
+  else
+    echo '{"decision":"block","reason":"You haven'\''t reflected on this session yet. Run /jarvis-reflect before ending."}'
+  fi
 fi

@@ -134,7 +134,9 @@ DEOF
 create_journal_entry() {
   local dir="$1" datetime="$2" tags="$3" task_type="$4" keyword="$5"
   # datetime format: 2026-03-15-14-30
-  local filename="${datetime}.md"
+  local uuid_suffix
+  uuid_suffix=$(head -c4 /dev/urandom | xxd -p)
+  local filename="${datetime}-${uuid_suffix}.md"
   local date_part="${datetime:0:10}"
   local time_part="${datetime:11:2}:${datetime:14:2}"
 
@@ -230,13 +232,13 @@ group "jarvis-session-start.sh"
 # Test 1: No data dir
 test_dir="$TEST_ROOT/ss1"
 mkdir -p "$test_dir"
-output=$(JARVIS_DIR="$test_dir/nonexistent" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | JARVIS_DIR="$test_dir/nonexistent" bash "$SESSION_START" 2>&1)
 assert_contains "No data dir → 'not set up' message" "$output" "not set up"
 
 # Test 2: Fresh scaffold (v0.0)
 test_dir="$TEST_ROOT/ss2"
 scaffold_jarvis_dir "$test_dir"
-output=$(JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_contains "Fresh scaffold → 'fresh JaRVIS setup' message" "$output" "fresh JaRVIS setup"
 
 # Test 3: Populated identity + memories + 4 journals → loads identity, memories, 3 most recent
@@ -248,7 +250,7 @@ create_journal_entry "$test_dir" "2026-03-10-09-00" "setup" "config" "alpha"
 create_journal_entry "$test_dir" "2026-03-11-10-00" "testing" "feature" "beta"
 create_journal_entry "$test_dir" "2026-03-12-11-00" "bugfix" "bugfix" "gamma"
 create_journal_entry "$test_dir" "2026-03-13-14-00" "deploy" "feature" "delta"
-output=$(JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_contains "Loads identity (TestBot)" "$output" "TestBot"
 assert_contains "Loads memories (dark mode)" "$output" "dark mode"
 assert_contains "Loads most recent journal (delta)" "$output" "delta"
@@ -258,7 +260,7 @@ assert_not_contains "Does NOT load 4th oldest journal (alpha)" "$output" "alpha"
 test_dir="$TEST_ROOT/ss4"
 scaffold_jarvis_dir "$test_dir"
 rm -f "$test_dir/memories/"*.md
-output=$(JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_not_contains "Empty memories dir → no Memories section" "$output" "## Memories:"
 
 # Test 5: Memory with empty Consolidated
@@ -273,7 +275,7 @@ cat > "$test_dir/memories/preferences.md" << 'EOF'
 
 ## Recent
 EOF
-output=$(JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_not_contains "Empty Consolidated → not included" "$output" "Memories: preferences"
 
 # ============================================================
@@ -284,35 +286,50 @@ group "jarvis-stop.sh"
 # Test 1: No data dir → silent exit
 test_dir="$TEST_ROOT/stop1"
 mkdir -p "$test_dir"
-output=$(JARVIS_DIR="$test_dir/nonexistent" bash "$STOP_HOOK" 2>&1)
+output=$(echo '{"session_id": "test1"}' | JARVIS_DIR="$test_dir/nonexistent" bash "$STOP_HOOK" 2>&1)
 rc=$?
 assert_exit_code "No data dir → exit 0" "$rc" 0
 assert_not_contains "No data dir → silent (no output)" "$output" "reflect"
 
-# Test 2: No journal dir → silent exit
+# Test 2: No pending marker → silent exit
 test_dir="$TEST_ROOT/stop2"
-mkdir -p "$test_dir"
-output=$(JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+scaffold_jarvis_dir "$test_dir"
+output=$(echo '{"session_id": "test2"}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
 rc=$?
-assert_exit_code "No journal dir → exit 0" "$rc" 0
+assert_exit_code "No pending marker → exit 0" "$rc" 0
+assert_not_contains "No pending marker → silent" "$output" "block"
 
-# Test 3: No recent entries → outputs reminder
+# Test 3: Pending marker exists → blocks
 test_dir="$TEST_ROOT/stop3"
 scaffold_jarvis_dir "$test_dir"
-create_journal_entry "$test_dir" "2026-03-10-09-00" "old" "feature" "oldwork"
-# Set mtime to 4 hours ago
-touch -t 202603100100.00 "$test_dir/journal/2026-03-10-09-00.md"
-output=$(JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
-assert_contains "No recent entries → reminder" "$output" "haven't reflected"
+touch "$test_dir/.pending-test3"
+output=$(echo '{"session_id": "test3"}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+assert_contains "Pending marker → blocking JSON" "$output" '"decision"'
+assert_contains "Pending marker → block value" "$output" '"block"'
+assert_contains "Pending marker → has reason" "$output" "haven't reflected"
 
-# Test 4: Recent entry exists → silent
+# Test 4: Different session's pending marker → silent
 test_dir="$TEST_ROOT/stop4"
 scaffold_jarvis_dir "$test_dir"
-create_journal_entry "$test_dir" "2026-03-15-14-00" "recent" "feature" "freshwork"
-# Touch to now to ensure it's recent
-touch "$test_dir/journal/2026-03-15-14-00.md"
-output=$(JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
-assert_not_contains "Recent entry → silent" "$output" "reflect"
+touch "$test_dir/.pending-other"
+output=$(echo '{"session_id": "test4"}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Different session's marker → silent" "$output" "block"
+
+# Test 5: stop_hook_active=true → silent exit (prevents infinite loop)
+test_dir="$TEST_ROOT/stop5"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-test5"
+output=$(echo '{"session_id": "test5", "stop_hook_active": true}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+rc=$?
+assert_exit_code "stop_hook_active=true → exit 0" "$rc" 0
+assert_not_contains "stop_hook_active=true → no output" "$output" "block"
+
+# Test 6: No session_id in stdin → silent (can't check without session ID)
+test_dir="$TEST_ROOT/stop6"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-something"
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "No session_id → silent" "$output" "block"
 
 # ============================================================
 # Group 3: validate.sh
@@ -416,12 +433,13 @@ assert_contains "Missing Consolidated" "$output" "missing ## Consolidated"
 test_dir="$TEST_ROOT/val9"
 scaffold_jarvis_dir "$test_dir"
 create_journal_entry "$test_dir" "2026-03-15-14-30" "testing" "feature" "good"
-# Create a bad-named journal
-cp "$test_dir/journal/2026-03-15-14-30.md" "$test_dir/journal/my-journal.md"
+# Create a bad-named journal (copy from whichever UUID-named file was created)
+good_journal=$(ls -1 "$test_dir/journal/"*.md | head -1)
+cp "$good_journal" "$test_dir/journal/my-journal.md"
 output=$(bash "$VALIDATE" "$test_dir" 2>&1)
 rc=$?
 assert_exit_code "Bad journal filename → exit 1" "$rc" 1
-assert_contains "Bad journal filename message" "$output" "should match YYYY-MM-DD-HH-MM"
+assert_contains "Bad journal filename message" "$output" "should match YYYY-MM-DD-HH-MM"  # matches both old and new format error
 
 # Test 10: Journal empty section → FAIL
 test_dir="$TEST_ROOT/val10"
@@ -648,7 +666,7 @@ group "Path resolution"
 # Test 1: JARVIS_DIR env var override
 test_dir="$TEST_ROOT/path1"
 scaffold_jarvis_dir "$test_dir"
-output=$(JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_contains "JARVIS_DIR override → uses custom path" "$output" "jarvis-session-context"
 
 # Test 2: CLAUDE_PROJECT_DIR slug resolution
@@ -657,7 +675,7 @@ fake_home="$TEST_ROOT/fakehome"
 expected_slug="data-test-my-project"
 mkdir -p "$fake_home/.jarvis/projects/$expected_slug"
 scaffold_jarvis_dir "$fake_home/.jarvis/projects/$expected_slug"
-output=$(unset JARVIS_DIR; HOME="$fake_home" CLAUDE_PROJECT_DIR="/data/test/My Project" bash "$SESSION_START" 2>&1)
+output=$(echo '{}' | unset JARVIS_DIR; HOME="$fake_home" CLAUDE_PROJECT_DIR="/data/test/My Project" bash "$SESSION_START" 2>&1)
 assert_contains "CLAUDE_PROJECT_DIR slug resolution" "$output" "jarvis-session-context"
 
 # Test 3: pwd fallback
@@ -669,7 +687,7 @@ mkdir -p "$work_dir"
 work_slug=$(echo "$work_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
 mkdir -p "$fake_home/.jarvis/projects/$work_slug"
 scaffold_jarvis_dir "$fake_home/.jarvis/projects/$work_slug"
-output=$(cd "$work_dir" && unset JARVIS_DIR; unset CLAUDE_PROJECT_DIR; HOME="$fake_home" bash "$SESSION_START" 2>&1)
+output=$(cd "$work_dir" && echo '{}' | unset JARVIS_DIR; unset CLAUDE_PROJECT_DIR; HOME="$fake_home" bash "$SESSION_START" 2>&1)
 assert_contains "pwd fallback slug resolution" "$output" "jarvis-session-context"
 
 # ============================================================

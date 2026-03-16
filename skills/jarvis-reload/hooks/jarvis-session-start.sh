@@ -30,6 +30,28 @@ EOF
   exit 0
 fi
 
+# --- Read hook input from stdin ---
+_jarvis_hook_input=$(cat 2>/dev/null || true)
+if command -v jq &>/dev/null; then
+  _jarvis_session_id=$(echo "$_jarvis_hook_input" | jq -r '.session_id // empty' 2>/dev/null)
+  _jarvis_source=$(echo "$_jarvis_hook_input" | jq -r '.source // "startup"' 2>/dev/null)
+else
+  _jarvis_session_id=$(echo "$_jarvis_hook_input" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"session_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+  _jarvis_source="startup"
+fi
+
+# Create pending-reflection marker (skip for compaction events)
+if [[ -n "$_jarvis_session_id" && "$_jarvis_source" != "compact" ]]; then
+  touch "$JARVIS_DIR/.pending-$_jarvis_session_id"
+fi
+
+# Cleanup stale markers from crashed sessions (older than 24 hours)
+find "$JARVIS_DIR" -maxdepth 1 -name '.pending-*' -mmin +1440 -delete 2>/dev/null || true
+
+# Extract project slug from JARVIS_DIR (last path component)
+_project_slug=$(basename "$JARVIS_DIR")
+echo "🤖 JaRVIS loaded for $_project_slug" >&2
+
 # --- Begin context block ---
 echo "<jarvis-session-context>"
 
@@ -112,3 +134,6 @@ echo "**Note on platform memory:** Some platforms have their own auto-memory sys
 echo ""
 echo "Remember: run \`/jarvis-reflect\` after completing meaningful tasks to capture what you learned."
 echo "</jarvis-session-context>"
+
+# Cleanup temp vars
+unset _jarvis_hook_input _jarvis_session_id _jarvis_source
