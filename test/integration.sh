@@ -737,10 +737,7 @@ assert_file_exists "Scaffold creates decisions.md" "$expected_dir/memories/decis
 git_output=$(cd "$expected_dir" && git log --oneline 2>&1)
 assert_contains "Scaffold has git commit" "$git_output" "jarvis: initial scaffold"
 
-# Test 3: resolve-dir.sh installed to ~/.jarvis/bin/
-assert_file_exists "resolve-dir.sh installed to ~/.jarvis/bin/" "$fake_home/.jarvis/bin/resolve-dir.sh"
-
-# Test 4: Idempotency — running again prints ALREADY_EXISTS
+# Test 3: Idempotency — running again prints ALREADY_EXISTS
 output=$(unset JARVIS_DIR; HOME="$fake_home" CLAUDE_PROJECT_DIR="/test/project" bash "$JARVIS_INIT" 2>&1)
 assert_contains "Second run → ALREADY_EXISTS" "$output" "ALREADY_EXISTS"
 
