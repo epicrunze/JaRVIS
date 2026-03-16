@@ -11,9 +11,7 @@ Reload your identity and memories mid-session. This is useful after reflections 
 
 ## Step 1: Resolve JaRVIS data directory
 
-Resolve the JaRVIS data path:
-1. If `JARVIS_DIR` env var is set, use it.
-2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
+Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
 
 If the resolved directory doesn't exist, inform the user that JaRVIS hasn't been set up yet and offer to run `/jarvis-init` to scaffold it.
 

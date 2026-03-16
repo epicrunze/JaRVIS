@@ -12,12 +12,14 @@
 set -euo pipefail
 
 # --- Defaults ---
-if [ -n "${JARVIS_DIR:-}" ]; then
-  : # env var already set
-else
+if [ -f "$HOME/.jarvis/bin/resolve-dir.sh" ]; then
+  # shellcheck source=/dev/null
+  source "$HOME/.jarvis/bin/resolve-dir.sh"
+elif [ -z "${JARVIS_DIR:-}" ]; then
   _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
   _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
   JARVIS_DIR="$HOME/.jarvis/projects/$_slug"
+  unset _project_dir _slug
 fi
 SEARCH_TYPE="all"
 DATE_FROM=""

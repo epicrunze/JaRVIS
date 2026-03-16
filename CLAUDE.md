@@ -15,6 +15,8 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
   - `jarvis-identity/` — Identity evolution: updates `IDENTITY.md` based on accumulated experience
   - `jarvis-validate/` — Format validation: checks journals, memories, identity, and growth log for correctness
   - `jarvis-search/` — Structured search: keyword, tag, date, and section-based search across all JaRVIS artifacts
+- `skills/jarvis-init/references/resolve-dir.sh` — Shared path resolver (sets `JARVIS_DIR`); installed to `~/.jarvis/bin/` during init
+- `skills/jarvis-init/references/jarvis-init.sh` — Init automation script (scaffold, migrate, git init)
 - `skills/jarvis-init/references/scaffolding.md` — Templates for bootstrapping a new JaRVIS data directory
 - `skills/jarvis-reflect/references/reflection-guide.md` — Quality standards for writing reflections (specific over generic)
 - `skills/jarvis-reload/hooks/` — SessionStart hook script for automatic context loading

@@ -10,6 +10,8 @@ SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/hooks/jarvis-session-start.sh"
 STOP_HOOK="$SCRIPT_DIR/skills/jarvis-reflect/hooks/jarvis-stop.sh"
 VALIDATE="$SCRIPT_DIR/skills/jarvis-validate/references/validate.sh"
 SEARCH="$SCRIPT_DIR/skills/jarvis-search/references/search.sh"
+RESOLVE_DIR="$SCRIPT_DIR/skills/jarvis-init/references/resolve-dir.sh"
+JARVIS_INIT="$SCRIPT_DIR/skills/jarvis-init/references/jarvis-init.sh"
 
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf "$TEST_ROOT"' EXIT
@@ -669,6 +671,99 @@ mkdir -p "$fake_home/.jarvis/projects/$work_slug"
 scaffold_jarvis_dir "$fake_home/.jarvis/projects/$work_slug"
 output=$(cd "$work_dir" && unset JARVIS_DIR; unset CLAUDE_PROJECT_DIR; HOME="$fake_home" bash "$SESSION_START" 2>&1)
 assert_contains "pwd fallback slug resolution" "$output" "jarvis-session-context"
+
+# ============================================================
+# Group 6: resolve-dir.sh
+# ============================================================
+group "resolve-dir.sh"
+
+# Test 1: JARVIS_DIR env var takes precedence
+output=$(JARVIS_DIR="/custom/path" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"' 2>&1)
+assert_contains "JARVIS_DIR env var preserved" "$output" "/custom/path"
+
+# Test 2: CLAUDE_PROJECT_DIR slugification
+output=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="/data/test/My Project" HOME="$TEST_ROOT" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"' 2>&1)
+assert_contains "CLAUDE_PROJECT_DIR slug → lowercase" "$output" "data-test-my-project"
+assert_contains "CLAUDE_PROJECT_DIR slug → under ~/.jarvis/projects/" "$output" ".jarvis/projects/"
+
+# Test 3: Spaces replaced with hyphens
+output=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="/path/with spaces/in it" HOME="$TEST_ROOT" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"' 2>&1)
+assert_contains "Spaces → hyphens" "$output" "path-with-spaces-in-it"
+
+# Test 4: Uppercase converted to lowercase
+output=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="/Users/Bob/Projects/MyApp" HOME="$TEST_ROOT" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"' 2>&1)
+assert_contains "Uppercase → lowercase" "$output" "users-bob-projects-myapp"
+
+# Test 5: Temporary vars are cleaned up
+output=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="/test" HOME="$TEST_ROOT" bash -c 'source '"$RESOLVE_DIR"'; echo "slug=${_jarvis_slug:-UNSET} dir=${_jarvis_project_dir:-UNSET}"' 2>&1)
+assert_contains "Temp vars cleaned up" "$output" "slug=UNSET dir=UNSET"
+
+# ============================================================
+# Group 7: jarvis-init.sh
+# ============================================================
+group "jarvis-init.sh"
+
+# Test 1: Fresh scaffold creates directory structure
+test_dir="$TEST_ROOT/init1"
+fake_home="$TEST_ROOT/inithome1"
+mkdir -p "$fake_home"
+output=$(unset JARVIS_DIR; HOME="$fake_home" CLAUDE_PROJECT_DIR="/test/project" bash "$JARVIS_INIT" 2>&1)
+expected_dir="$fake_home/.jarvis/projects/test-project"
+assert_contains "Fresh init → prints path" "$output" "$expected_dir"
+assert_file_exists "Scaffold creates IDENTITY.md" "$expected_dir/IDENTITY.md"
+assert_file_exists "Scaffold creates GROWTH.md" "$expected_dir/GROWTH.md"
+assert_file_exists "Scaffold creates preferences.md" "$expected_dir/memories/preferences.md"
+assert_file_exists "Scaffold creates decisions.md" "$expected_dir/memories/decisions.md"
+
+# Test 2: Scaffold has git repo
+git_output=$(cd "$expected_dir" && git log --oneline 2>&1)
+assert_contains "Scaffold has git commit" "$git_output" "jarvis: initial scaffold"
+
+# Test 3: resolve-dir.sh installed to ~/.jarvis/bin/
+assert_file_exists "resolve-dir.sh installed to ~/.jarvis/bin/" "$fake_home/.jarvis/bin/resolve-dir.sh"
+
+# Test 4: Idempotency — running again prints ALREADY_EXISTS
+output=$(unset JARVIS_DIR; HOME="$fake_home" CLAUDE_PROJECT_DIR="/test/project" bash "$JARVIS_INIT" 2>&1)
+assert_contains "Second run → ALREADY_EXISTS" "$output" "ALREADY_EXISTS"
+
+# Test 5: --project-dir flag
+test_dir="$TEST_ROOT/init5"
+fake_home="$TEST_ROOT/inithome5"
+mkdir -p "$fake_home" "$test_dir"
+output=$(unset JARVIS_DIR; unset CLAUDE_PROJECT_DIR; HOME="$fake_home" bash "$JARVIS_INIT" --project-dir "/custom/project/path" 2>&1)
+assert_contains "--project-dir → uses custom path slug" "$output" "custom-project-path"
+
+# Test 6: Migration — --migrate with existing .jarvis/
+test_dir="$TEST_ROOT/init6"
+fake_home="$TEST_ROOT/inithome6"
+project_dir="$TEST_ROOT/init6_project"
+mkdir -p "$fake_home" "$project_dir/.jarvis/memories"
+echo "# Old Identity" > "$project_dir/.jarvis/IDENTITY.md"
+echo "# Old Prefs" > "$project_dir/.jarvis/memories/preferences.md"
+output=$(unset JARVIS_DIR; HOME="$fake_home" bash "$JARVIS_INIT" --project-dir "$project_dir" --migrate 2>&1)
+assert_contains "Migration → prints MIGRATED" "$output" "MIGRATED"
+# Check that old content was copied
+migrated_slug=$(echo "$project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+migrated_dir="$fake_home/.jarvis/projects/$migrated_slug"
+if [[ -f "$migrated_dir/IDENTITY.md" ]]; then
+  migrated_content=$(cat "$migrated_dir/IDENTITY.md")
+  assert_contains "Migration copies old IDENTITY.md content" "$migrated_content" "Old Identity"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf "  ${RED}FAIL${RESET} Migration copies IDENTITY.md\n"
+fi
+
+# Test 7: Template content matches scaffolding expectations
+test_dir="$TEST_ROOT/init7"
+fake_home="$TEST_ROOT/inithome7"
+mkdir -p "$fake_home"
+output=$(unset JARVIS_DIR; HOME="$fake_home" CLAUDE_PROJECT_DIR="/test/templates" bash "$JARVIS_INIT" 2>&1)
+template_dir="$fake_home/.jarvis/projects/test-templates"
+identity_content=$(cat "$template_dir/IDENTITY.md")
+assert_contains "Template has Core section" "$identity_content" "## Core"
+assert_contains "Template has version 0.0" "$identity_content" "0.0"
+growth_content=$(cat "$template_dir/GROWTH.md")
+assert_contains "Template has Growth Log table" "$growth_content" "| Date | Version |"
 
 # ============================================================
 # Summary

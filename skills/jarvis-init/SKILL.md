@@ -7,53 +7,32 @@ description: Initialize the ~/.jarvis/ directory structure for a project. Use th
 
 Scaffold the JaRVIS data directory so the agent has a place to store its identity, memories, and journal.
 
-## Step 1: Resolve data directory
-
-Derive the JaRVIS data path:
-
-1. If `JARVIS_DIR` env var is set, use it.
-2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
-
-If the resolved directory already exists, inform the user that JaRVIS is already set up and suggest running `/jarvis-reload` to begin a session.
-
-## Step 2: Migration check
+## Step 1: Migration check
 
 If `.jarvis/` exists in the project root, this project used the old per-project storage layout. Offer to migrate:
 
-1. Tell the user: "Found existing `.jarvis/` in the project root. Would you like to migrate it to the new home-directory location (`<resolved-path>`)?"
-2. If the user agrees, copy the contents: `cp -r .jarvis/* <resolved-path>/`
-3. After successful copy, suggest the user remove the old `.jarvis/` directory at their convenience.
-4. If the user declines, proceed with a fresh scaffold (the old directory is left untouched).
+1. Tell the user: "Found existing `.jarvis/` in the project root. Would you like to migrate it to the new home-directory location?"
+2. If the user agrees, note `--migrate` for the next step.
+3. If the user declines, proceed without `--migrate` (the old directory is left untouched).
 
 If no `.jarvis/` exists in the project root, skip this step.
 
-## Step 3: Create the directory structure
+## Step 2: Scaffold data directory
 
-Create the full scaffold at the resolved data directory:
-
-```
-~/.jarvis/projects/<slug>/
-├── IDENTITY.md
-├── GROWTH.md
-├── memories/
-│   ├── preferences.md
-│   └── decisions.md
-└── journal/
-```
-
-Use `mkdir -p` to create the directory tree. Use the scaffolding templates in `references/scaffolding.md` for initial file contents.
-
-## Step 4: Initialize version control
-
-Run `git init` inside the data directory and create an initial commit:
+Run the init script to resolve the path, scaffold the directory, install `resolve-dir.sh`, and create a git repo:
 
 ```bash
-cd <data-dir> && git init && git add -A && git commit -m "jarvis: initial scaffold"
+bash <skill-path>/references/jarvis-init.sh [--migrate] [--project-dir <path>]
 ```
 
-This gives the agent's growth its own version history, independent of the project repo.
+- Pass `--migrate` if the user agreed to migrate in Step 1.
+- Pass `--project-dir <path>` if the project root differs from `CLAUDE_PROJECT_DIR` / `pwd`.
 
-## Step 5: Detect platform
+The script prints `ALREADY_EXISTS` followed by the path if already initialized — inform the user and suggest `/jarvis-reload`.
+Otherwise it prints `MIGRATED` (if migration happened) followed by the resolved path.
+After successful migration, suggest the user remove the old `.jarvis/` directory at their convenience.
+
+## Step 3: Detect platform
 
 Determine which AI coding agent platform is running. Check for these signals in order:
 
@@ -68,19 +47,22 @@ If multiple signals are detected, ask the user which platform they're using (inc
 
 If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, Antigravity, or Other.
 
-## Step 6: Configure platform
+## Step 4: Configure platform
 
 Based on the detected platform, perform the platform-specific setup:
 
 ### If Claude Code:
 
-**Permissions:** Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules:
+**Permissions:** Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules. Use the project-specific path (`~/.jarvis/projects/<slug>/`) resolved from Step 1, not the global `~/.jarvis/` path:
 
 ```json
 {
   "permissions": {
     "allow": [
-      "Read(~/.jarvis/**)"
+      "Read(~/.jarvis/projects/<slug>/**)",
+      "Edit(~/.jarvis/projects/<slug>/**)",
+      "Write(~/.jarvis/projects/<slug>/**)",
+      "Bash(cd ~/.jarvis/projects/<slug> && git *)"
     ]
   }
 }
@@ -191,7 +173,7 @@ If the JaRVIS section already exists in the instruction file, skip this step.
 
 No hooks are configured for generic platforms. Inform the user they should run `/jarvis-reload` manually at the start of each session.
 
-## Step 7: Report
+## Step 5: Report
 
 Confirm the setup is complete:
 

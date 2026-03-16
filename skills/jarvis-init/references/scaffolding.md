@@ -41,6 +41,8 @@ No observations yet. Preferences noted during collaboration appear here.
 
 After scaffolding, run `git init` inside the data directory and create an initial commit. This gives the agent's growth its own version history, independent of any project repo.
 
+> **Note:** These templates are also embedded in `jarvis-init.sh`. If you update templates here, update them in the script as well to keep them in sync.
+
 ## Journal entry format note
 
 Journal entries created by `/jarvis-reflect` include YAML frontmatter with `date`, `time`, `tags`, `task_type`, and optionally `files_touched`. This frontmatter enables structured search via `/jarvis-search` and validation via `/jarvis-validate`.

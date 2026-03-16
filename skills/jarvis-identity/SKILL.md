@@ -9,9 +9,7 @@ Time to sculpt your identity based on what you've learned.
 
 ## Step 1: Read current state
 
-Resolve the JaRVIS data path:
-1. If `JARVIS_DIR` env var is set, use it.
-2. Otherwise, slugify the current project path: strip leading `/`, replace `/` and spaces with `-`, lowercase. The data dir is `~/.jarvis/projects/<slug>/`.
+Run `source ~/.jarvis/bin/resolve-dir.sh` to set `JARVIS_DIR`. If the script doesn't exist, set it manually: use the `JARVIS_DIR` env var if set, or slugify the project path (strip leading `/`, replace `/` and spaces with `-`, lowercase) under `~/.jarvis/projects/`.
 
 Read `<data-dir>/IDENTITY.md` — this is who you are right now. Note the current version number.
 
