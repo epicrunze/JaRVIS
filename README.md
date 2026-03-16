@@ -2,7 +2,7 @@
 
 **Journaling As Recurrent Versioned Identity Sculpting**
 
-AI agents forget everything between sessions. JaRVIS gives your agent persistent memory, post-task reflection, and a self-evolving identity — all stored as plain markdown files you can read, edit, and version-control.
+AI agents forget everything between sessions. JaRVIS gives your agent persistent memory, post-task reflection, and a self-evolving identity. Files are stored as plain markdown files you can read, edit, and version-control.
 
 Works with Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents.
 
@@ -25,6 +25,8 @@ Install JaRVIS as a Claude Code plugin:
 /plugin marketplace add epicrunze/JaRVIS
 /plugin install jarvis@jarvis-marketplace
 ```
+
+Then run `/jarvis-init` to scaffold the JaRVIS data directory.
 
 ### Option B: One-prompt install
 
@@ -58,36 +60,6 @@ Works with Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding
 > **Other platforms:** If your agent doesn't match any of the detected platforms, the install prompt will ask you where to put skills. `/jarvis-init` will then ask for your instruction file path.
 
 ### Option C: Manual install
-
-Copy the skill folders into your platform's skills directory:
-
-#### Claude Code
-
-```bash
-cp -r skills/* .claude/skills/
-```
-
-Global install (all projects): copy to `~/.claude/skills/` instead.
-
-#### Cursor
-
-```bash
-cp -r skills/* .cursor/skills/
-```
-
-#### GitHub Copilot
-
-```bash
-cp -r skills/* .github/skills/
-```
-
-#### Antigravity
-
-```bash
-cp -r skills/* .agent/skills/
-```
-
-#### Other platforms
 
 Copy skills into your platform's skills directory (e.g., `.agent/skills/` or wherever your platform loads skills from):
 
@@ -156,14 +128,16 @@ All files are markdown. Each data directory has its own git repo, initialized au
 
 ## Philosophy
 
-Most agent memory systems are passive stores. JaRVIS is different — it treats the agent as a journaler who pauses after work, reflects on what happened, and gradually sculpts a coherent identity.
+Most agent memory systems are passive stores. Here, the agent is a journaler who pauses after work, reflects on what happened, and gradually sculpts a coherent identity. (and remembers your stuff! (hopefully))
 
-The key ideas:
+The key (LLM generated) ideas:
 
 - **Reflection over logging.** Not "what happened" but "what did I learn and what should I do differently."
 - **Earned identity.** The agent only claims expertise it has demonstrated. Principles come from experience, not aspiration.
 - **Memory consolidation.** Memories are periodically sculpted — deduplicated, tightened, and shaped. You're not just adding clay, you're sculpting it.
 - **Transparency.** Everything is human-readable markdown in `~/.jarvis/`. No databases, no vector stores, no black boxes.
+
+The important thing is that it's a balance between structure and freedom to allow the agent to express its own ideas and memories.
 
 ## License
 
