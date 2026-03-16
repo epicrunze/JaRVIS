@@ -44,7 +44,7 @@ if [[ -f "$JARVIS_DIR/IDENTITY.md" ]]; then
   IDENTITY=$(cat "$JARVIS_DIR/IDENTITY.md")
   if [[ -n "$IDENTITY" ]]; then
     # Check for blank/template identity (version 0.0)
-    if echo "$IDENTITY" | grep -q 'version: 0\.0'; then
+    if echo "$IDENTITY" | grep -qi 'Version.*0\.0'; then
       echo ""
       echo "## Identity"
       echo ""
