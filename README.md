@@ -2,37 +2,18 @@
 
 **Journaling As Recurrent Versioned Identity Sculpting**
 
-A set of agent skills for Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents that give your agent persistent memory, post-task reflection, and a self-evolving identity — stored as flat markdown files in your home directory.
+AI agents forget everything between sessions. JaRVIS gives your agent persistent memory, post-task reflection, and a self-evolving identity — all stored as plain markdown files you can read, edit, and version-control.
+
+Works with Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents.
 
 ## What it does
 
-JaRVIS adds six skills to your AI coding agent:
+JaRVIS adds these skills to your AI coding agent:
 
-- **`/jarvis-init`** — Scaffold the JaRVIS data directory (run once)
-- **`/jarvis-reload`** — Reload your agent's identity and memories (automatic on session start for platforms with hooks, manual otherwise)
-- **`/jarvis-reflect`** — Structured post-task reflection that captures lessons, updates memories, and logs what happened
-- **`/jarvis-identity`** — Evolve the agent's identity document based on accumulated experience
-- **`/jarvis-validate`** — Check JaRVIS artifacts for format correctness
-- **`/jarvis-search`** — Search past entries by keyword, tag, date range, or section
-
-Everything lives in `~/.jarvis/projects/<slug>/` under your home directory (where `<slug>` is derived from your project path):
-
-```
-~/.jarvis/projects/<slug>/
-├── IDENTITY.md              # Who the agent is (version-controlled, self-authored)
-├── GROWTH.md                # Tracks reflection count and evolution history
-├── memories/
-│   ├── preferences.md       # Observed user preferences
-│   ├── decisions.md         # Key decisions with rationale
-│   └── ...                  # Additional files created through reflection
-└── journal/
-    ├── 2026-03-10-14-30.md  # Reflection entries
-    └── ...
-```
-
-The `<slug>` is your project path with the leading `/` stripped, `/` and spaces replaced with `-`, and lowercased. For example, `/home/user/Projects/MyApp` becomes `home-user-projects-myapp`. Override with the `JARVIS_DIR` environment variable.
-
-All files are markdown. Each data directory has its own git repo, initialized automatically by `/jarvis-init`. Your agent's growth is visible in its own commit history.
+- **`/jarvis-init`** — One-time setup to scaffold the data directory (**RUN THIS AFTER INSTALLATION**)
+- **`/jarvis-reload`** — Reload identity and memories mid-session (automatic on platforms with hooks)
+- **`/jarvis-reflect`** — Post-task reflection that captures lessons and updates memories
+- **`/jarvis-identity`** — Evolve the agent's identity based on accumulated experience
 
 ## Install
 
@@ -114,18 +95,6 @@ Copy skills into your platform's skills directory (e.g., `.agent/skills/` or whe
 cp -r skills/* <your-skills-directory>/
 ```
 
-### Add to your instruction file
-
-Add the JaRVIS section to your platform's instruction file. See the example files for what to add:
-
-| Platform | Instruction File | Example |
-|----------|-----------------|---------|
-| Claude Code | `CLAUDE.md` | `skills/jarvis-init/references/CLAUDE.md.example` |
-| Cursor | `.cursorrules` | `skills/jarvis-init/references/cursorrules.example` |
-| GitHub Copilot | `.github/copilot-instructions.md` | `skills/jarvis-init/references/copilot-instructions.example` |
-| Antigravity | `AGENTS.md` | `skills/jarvis-init/references/AGENTS.md.example` |
-| Other | Your instruction file | `skills/jarvis-init/references/AGENTS.md.example` |
-
 Then run `/jarvis-init` to scaffold the JaRVIS data directory. The init skill will detect your platform and configure things automatically.
 
 ## Hooks
@@ -163,6 +132,27 @@ Hook scripts live inside the skill directories (`jarvis-reload/hooks/` and `jarv
 ```
 
 > **Note:** On platforms without session-start hooks, run `/jarvis-reload` at the start of each session to load your identity and memories.
+
+## Data directory
+
+Everything lives in `~/.jarvis/projects/<slug>/` under your home directory (where `<slug>` is derived from your project path):
+
+```
+~/.jarvis/projects/<slug>/
+├── IDENTITY.md              # Who the agent is (version-controlled, self-authored)
+├── GROWTH.md                # Tracks reflection count and evolution history
+├── memories/
+│   ├── preferences.md       # Observed user preferences
+│   ├── decisions.md         # Key decisions with rationale
+│   └── ...                  # Additional files created through reflection
+└── journal/
+    ├── 2026-03-10-14-30.md  # Reflection entries
+    └── ...
+```
+
+The `<slug>` is your project path with the leading `/` stripped, `/` and spaces replaced with `-`, and lowercased. For example, `/home/user/Projects/MyApp` becomes `home-user-projects-myapp`. Override with the `JARVIS_DIR` environment variable.
+
+All files are markdown. Each data directory has its own git repo, initialized automatically by `/jarvis-init`. Your agent's growth is visible in its own commit history.
 
 ## Philosophy
 
