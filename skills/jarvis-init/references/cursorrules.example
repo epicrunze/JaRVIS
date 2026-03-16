@@ -4,4 +4,3 @@ Identity and memories are loaded automatically at session start via the sessionS
 A stop hook will remind you to reflect before ending a session if you haven't already.
 Use `/jarvis-reload` to reload context mid-session if needed.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-You MUST run `/jarvis-reflect` before ending any session — do not end without reflecting.

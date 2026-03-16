@@ -7,7 +7,7 @@ description: Reload jarvis identity and memories mid-session. Use this skill whe
 
 Reload your identity and memories mid-session. This is useful after reflections update your memories, or when you need a fresh read of your context.
 
-> **Note:** On platforms with session-start hooks (e.g., Claude Code), identity loads automatically. On other platforms, run this skill at the start of each session.
+> **Note:** On platforms with session-start hooks (Claude Code, Cursor), identity loads automatically. Copilot and OpenCode have hooks for marker tracking but cannot inject context — run this skill at the start of each session. On other platforms (Antigravity, etc.), run this skill manually at the start of each session.
 
 ## Step 1: Resolve JaRVIS data directory
 

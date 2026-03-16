@@ -1,0 +1,86 @@
+// JaRVIS Session Hooks — OpenCode Plugin
+//
+// Copy this file to .opencode/plugins/jarvis-hooks.ts
+//
+// This plugin handles session lifecycle events for JaRVIS:
+// - session.created: runs the base session-start script for side effects
+//   (pending marker creation, stale marker cleanup)
+// - session.idle: cleans up pending markers when the session ends
+//
+// OpenCode plugins run in-process via Bun. The $ API provides shell access.
+//
+// To customize the skills path, set JARVIS_SKILLS_DIR env var.
+// Otherwise, the plugin looks in .opencode/skills/ and ~/.config/opencode/skills/.
+
+import type { Plugin } from "@opencode-ai/plugin";
+import { existsSync } from "fs";
+import { join } from "path";
+import { homedir } from "os";
+
+function findSkillsDir(directory: string): string | null {
+  const envDir = process.env.JARVIS_SKILLS_DIR;
+  if (envDir && existsSync(envDir)) return envDir;
+
+  const localDir = join(directory, ".opencode", "skills");
+  if (existsSync(join(localDir, "jarvis-reload"))) return localDir;
+
+  const globalDir = join(homedir(), ".config", "opencode", "skills");
+  if (existsSync(join(globalDir, "jarvis-reload"))) return globalDir;
+
+  return null;
+}
+
+function resolveJarvisDir(directory: string): string {
+  const envDir = process.env.JARVIS_DIR;
+  if (envDir) return envDir;
+
+  const slug = directory
+    .replace(/^\//, "")
+    .replace(/[ /]/g, "-")
+    .toLowerCase();
+  return join(homedir(), ".jarvis", "projects", slug);
+}
+
+export const JarvisHooks: Plugin = async ({ directory, $ }) => {
+  const skillsDir = findSkillsDir(directory);
+  const jarvisDir = resolveJarvisDir(directory);
+
+  return {
+    event: async ({ event }) => {
+      if (event.type === "session.created") {
+        // Run the base session-start script for side effects
+        if (skillsDir) {
+          const scriptPath = join(
+            skillsDir,
+            "jarvis-reload",
+            "scripts",
+            "jarvis-session-start.sh"
+          );
+          if (existsSync(scriptPath)) {
+            const sessionId = `opencode-${Date.now()}`;
+            const input = JSON.stringify({
+              session_id: sessionId,
+              source: "startup",
+            });
+            try {
+              await $`echo ${input} | bash ${scriptPath}`.quiet();
+            } catch {
+              // Non-fatal — don't disrupt the session
+            }
+          }
+        }
+      }
+
+      if (event.type === "session.idle") {
+        // Clean up pending markers for OpenCode sessions
+        if (existsSync(jarvisDir)) {
+          try {
+            await $`find ${jarvisDir} -maxdepth 1 -name '.pending-opencode-*' -delete`.quiet();
+          } catch {
+            // Non-fatal
+          }
+        }
+      }
+    },
+  };
+};

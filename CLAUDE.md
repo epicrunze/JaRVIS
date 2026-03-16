@@ -8,6 +8,7 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
 
 ## Repository Structure
 
+- `hooks/hooks.json` — Claude Code plugin hooks (auto-registers SessionStart + Stop when installed as a plugin)
 - `skills/` — Contains the six JaRVIS skills, each in its own directory with a `SKILL.md`
   - `jarvis-init/` — One-time setup: scaffolds the `~/.jarvis/projects/<slug>/` data directory
   - `jarvis-reload/` — Mid-session reload: re-reads identity and memories from the JaRVIS data directory
@@ -18,11 +19,17 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
 - `skills/*/scripts/resolve-dir.sh` — Shared path resolver (sets `JARVIS_DIR`); each skill carries its own copy
 - `skills/jarvis-init/scripts/jarvis-init.sh` — Init automation script (scaffold, migrate, git init)
 - `skills/jarvis-init/references/scaffolding.md` — Templates for bootstrapping a new JaRVIS data directory
+- `skills/jarvis-init/references/platform-*.md` — Per-platform setup guides (Claude Code, Cursor, Copilot, OpenCode, Antigravity, Other)
+- `skills/jarvis-init/references/copilot-hooks.json.example` — Template for Copilot hook configuration
+- `skills/jarvis-init/references/opencode-plugin.ts.example` — Template for OpenCode session hooks plugin
+- `skills/jarvis-init/references/opencode-instructions.example` — Instruction snippet for OpenCode projects
 - `skills/jarvis-reflect/references/reflection-guide.md` — Quality standards for writing reflections (specific over generic)
 - `skills/jarvis-reload/scripts/jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start
 - `skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` — Cursor variant of session start hook
+- `skills/jarvis-reload/scripts/jarvis-session-start-copilot.sh` — Copilot variant of session start hook (marker tracking only)
 - `skills/jarvis-reflect/scripts/jarvis-stop.sh` — Stop hook that reminds to reflect before ending session
 - `skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` — Cursor variant of stop hook
+- `skills/jarvis-reflect/scripts/jarvis-session-end-copilot.sh` — Copilot session end hook (marker cleanup)
 - `skills/jarvis-init/references/CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS (Claude Code)
 - `skills/jarvis-init/references/cursorrules.example` — Snippet for `.cursorrules` (Cursor)
 - `skills/jarvis-init/references/copilot-instructions.example` — Snippet for `.github/copilot-instructions.md` (GitHub Copilot)
@@ -33,9 +40,10 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
 ## Installation Paths
 
 Skills are installed by copying skill folders into the platform's skills directory:
-- **Claude Code:** `.claude/skills/` (project) or `~/.claude/skills/` (global)
+- **Claude Code:** `.claude/skills/` (project) or `~/.claude/skills/` (global); also installable as a plugin (`claude plugins add`) with auto-registered hooks
 - **Cursor:** `.cursor/skills/`
 - **GitHub Copilot:** `.github/skills/`
+- **OpenCode:** `.opencode/skills/` (project) or `~/.config/opencode/skills/` (global)
 - **Antigravity:** `.agent/skills/`
 - **Other:** User-specified directory (default: `.agent/skills/`)
 

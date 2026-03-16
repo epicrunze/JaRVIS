@@ -1,5 +1,7 @@
 ## JaRVIS
 
-You MUST run `/jarvis-reload` at the start of every session to load your identity and memories.
+Hooks in `.github/hooks/jarvis.json` handle reflection tracking automatically (pending markers, cleanup).
+Copilot hooks are observational and cannot inject context — you MUST run `/jarvis-reload` at the start of every session to load your identity and memories.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-You MUST run `/jarvis-reflect` before ending any session — do not end without reflecting.
+You MUST run `/jarvis-reflect` after exiting the agentic loop.
+

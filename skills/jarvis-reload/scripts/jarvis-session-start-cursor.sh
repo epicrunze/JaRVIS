@@ -3,6 +3,8 @@
 # Cursor hooks require JSON I/O ({ "agent_message": "..." }).
 # This wrapper reads Cursor's stdin (which has conversation_id, not session_id),
 # maps conversation_id → session_id, pipes it to the base script, and wraps output.
+# The base script now outputs structured JSON; this wrapper extracts the
+# additionalContext field and rewraps it for Cursor.
 
 set -euo pipefail
 
@@ -23,18 +25,31 @@ else
   fi
 fi
 
-PLAIN_OUTPUT=$(echo "$BASE_INPUT" | "$SCRIPT_DIR/jarvis-session-start.sh" 2>/dev/null || true)
+JSON_OUTPUT=$(echo "$BASE_INPUT" | "$SCRIPT_DIR/jarvis-session-start.sh" 2>/dev/null || true)
 
-if [[ -z "$PLAIN_OUTPUT" ]]; then
+if [[ -z "$JSON_OUTPUT" ]]; then
   echo '{"agent_message":""}'
   exit 0
 fi
 
-# Use jq if available, otherwise fall back to manual JSON encoding
+# Extract additionalContext from the base script's JSON output and wrap for Cursor
 if command -v jq &>/dev/null; then
-  echo "$PLAIN_OUTPUT" | jq -Rs '{ agent_message: . }'
+  CONTEXT=$(echo "$JSON_OUTPUT" | jq -r '.hookSpecificOutput.additionalContext // empty' 2>/dev/null)
+  if [[ -z "$CONTEXT" ]]; then
+    # Fallback: treat entire output as context (in case base script format changes)
+    CONTEXT="$JSON_OUTPUT"
+  fi
+  echo "$CONTEXT" | jq -Rs '{ agent_message: . }'
 else
-  # Escape backslashes, double quotes, and newlines for JSON
-  ESCAPED=$(printf '%s' "$PLAIN_OUTPUT" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
-  printf '{"agent_message":"%s"}\n' "$ESCAPED"
+  # Without jq, try to extract additionalContext with grep/sed
+  # The additionalContext value is a JSON string, so extract between the quotes
+  CONTEXT=$(printf '%s' "$JSON_OUTPUT" | grep -o '"additionalContext"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/^"additionalContext"[[:space:]]*:[[:space:]]*"//;s/"$//')
+  if [[ -z "$CONTEXT" ]]; then
+    # Fallback: use the raw JSON output
+    ESCAPED=$(printf '%s' "$JSON_OUTPUT" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' -e ':a' -e 'N' -e '$!ba' -e 's/\n/\\n/g')
+    printf '{"agent_message":"%s"}\n' "$ESCAPED"
+  else
+    # Context is already JSON-escaped from the base script output, wrap it directly
+    printf '{"agent_message":"%s"}\n' "$CONTEXT"
+  fi
 fi

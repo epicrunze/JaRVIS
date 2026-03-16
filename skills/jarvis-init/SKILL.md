@@ -17,12 +17,44 @@ If `.jarvis/` exists in the project root, this project used the old per-project 
 
 If no `.jarvis/` exists in the project root, skip this step.
 
-## Step 2: Scaffold data directory
+## Step 2: Detect platform
+
+Determine which AI coding agent platform is running. Check for these signals in order:
+
+| Signal | Platform |
+|--------|----------|
+| `CLAUDE_PROJECT_DIR` env var or `.claude/` directory exists | **Claude Code** |
+| `.cursor/` directory exists | **Cursor** |
+| `.github/` directory with copilot config exists | **GitHub Copilot** |
+| `opencode.json` or `.opencode/` directory exists | **OpenCode** |
+| `.agent/` directory or `AGENTS.md` exists | **Antigravity** |
+
+If multiple signals are detected, ask the user which platform they're using (include "Other" as an option).
+
+If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, Antigravity, or Other.
+
+## Step 3: Configure platform
+
+First, determine the skills base directory (`SKILLS_DIR`) for the detected platform:
+
+| Platform | Local (project) | Global (user home) | Plugin |
+|----------|------------------|--------------------|--------|
+| Claude Code | `.claude/skills` | `~/.claude/skills` | `$CLAUDE_PLUGIN_ROOT/skills` (if installed as plugin) |
+| Cursor | `.cursor/skills` | `~/.cursor/skills` | — |
+| GitHub Copilot | `.github/skills` | `~/.github/skills` | — |
+| OpenCode | `.opencode/skills` | `~/.config/opencode/skills` | — |
+| Antigravity | `.agent/skills` | `~/.agent/skills` | — |
+
+For Claude Code: if `$CLAUDE_PLUGIN_ROOT` is set and `$CLAUDE_PLUGIN_ROOT/skills/jarvis-reload/` exists, JaRVIS is installed as a plugin — use `$CLAUDE_PLUGIN_ROOT/skills`. Otherwise check local then global.
+For other platforms: check if the local path contains JaRVIS skills (e.g., `<local-path>/jarvis-reload/` exists). If so, use the local path. Otherwise use the global path.
+Call the result `SKILLS_DIR`.
+
+## Step 4: Scaffold data directory
 
 Run the init script to resolve the path, scaffold the directory, and create a git repo:
 
 ```bash
-bash <skill-path>/scripts/jarvis-init.sh [--migrate] [--project-dir <path>]
+bash $SKILLS_DIR/scripts/jarvis-init.sh [--migrate] [--project-dir <path>]
 ```
 
 - Pass `--migrate` if the user agreed to migrate in Step 1.
@@ -32,131 +64,19 @@ The script prints `ALREADY_EXISTS` followed by the path if already initialized �
 Otherwise it prints `MIGRATED` (if migration happened) followed by the resolved path.
 After successful migration, suggest the user remove the old `.jarvis/` directory at their convenience.
 
-## Step 3: Detect platform
+Then read and follow the corresponding setup guide:
 
-Determine which AI coding agent platform is running. Check for these signals in order:
+| Platform | Reference |
+|----------|-----------|
+| Claude Code | `references/platform-claude-code.md` |
+| Cursor | `references/platform-cursor.md` |
+| GitHub Copilot | `references/platform-copilot.md` |
+| OpenCode | `references/platform-opencode.md` |
+| Antigravity | `references/platform-antigravity.md` |
+| Other | `references/platform-other.md` |
 
-| Signal | Platform |
-|--------|----------|
-| `CLAUDE_PROJECT_DIR` env var or `.claude/` directory exists | **Claude Code** |
-| `.cursor/` directory exists | **Cursor** |
-| `.github/` directory with copilot config exists | **GitHub Copilot** |
-| `.agent/` directory or `AGENTS.md` exists | **Antigravity** |
-
-If multiple signals are detected, ask the user which platform they're using (include "Other" as an option).
-
-If no signals are detected, ask the user to choose from: Claude Code, Cursor, GitHub Copilot, Antigravity, or Other.
-
-## Step 4: Configure platform
-
-Based on the detected platform, perform the platform-specific setup:
-
-### If Claude Code:
-
-**Permissions:** Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules. Use the project-specific path (`~/.jarvis/projects/<slug>/`) resolved from Step 1, not the global `~/.jarvis/` path:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "Read(~/.jarvis/projects/<slug>/**)",
-      "Edit(~/.jarvis/projects/<slug>/**)",
-      "Write(~/.jarvis/projects/<slug>/**)",
-      "Bash(cd ~/.jarvis/projects/<slug> && git *)",
-      "Bash(bash <detected-skills-path>/jarvis-validate/scripts/validate.sh *)",
-      "Bash(bash <detected-skills-path>/jarvis-search/scripts/search.sh *)",
-      "Bash(bash <detected-skills-path>/jarvis-init/scripts/jarvis-init.sh *)"
-    ]
-  }
-}
-```
-
-For the script permissions, determine `<detected-skills-path>`: if `.claude/skills/jarvis-validate/scripts/validate.sh` exists in the project root, skills are installed locally — use `.claude/skills` as the prefix. Otherwise use `~/.claude/skills` (global install). Apply this prefix to all three skill script paths.
-
-**Hooks:** Merge the JaRVIS SessionStart hook into `.claude/settings.local.json` (the same file from the permissions step):
-
-1. Determine the hook script path: if `.claude/skills/jarvis-reload/scripts/jarvis-session-start.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reload/scripts/jarvis-session-start.sh` (global install).
-2. Ensure the `hooks` object exists in the settings JSON. Ensure `hooks.SessionStart` is an array. Each entry in `hooks.SessionStart` must be an object with `matcher` (string) and `hooks` (array) keys.
-3. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing `hooks.SessionStart` entries' `hooks` sub-array command strings.
-4. If not already present, append this entry to the `hooks.SessionStart` array:
-   ```json
-   {
-     "matcher": "",
-     "hooks": [
-       {
-         "type": "command",
-         "command": "bash <detected-path>"
-       }
-     ]
-   }
-   ```
-5. Write the merged JSON back to `.claude/settings.local.json`, preserving all existing hooks and other settings.
-6. **Stop hook:** Determine the stop hook script path: if `.claude/skills/jarvis-reflect/scripts/jarvis-stop.sh` exists in the project root, use that relative path. Otherwise use `~/.claude/skills/jarvis-reflect/scripts/jarvis-stop.sh` (global install).
-7. Ensure `hooks.Stop` is an array. Each entry must be an object with `matcher` (string) and `hooks` (array) keys.
-8. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing `hooks.Stop` entries' `hooks` sub-array command strings.
-9. If not already present, append this entry to the `hooks.Stop` array:
-   ```json
-   {
-     "matcher": "",
-     "hooks": [
-       {
-         "type": "command",
-         "command": "bash <detected-path>"
-       }
-     ]
-   }
-   ```
-10. Write the merged JSON back to `.claude/settings.local.json`, preserving all existing hooks and other settings.
-
-**Instruction file:** Read the project's `CLAUDE.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/CLAUDE.md.example` to the end of the file (preceded by a blank line).
-
-### If Cursor:
-
-**Hooks:** Create or merge the JaRVIS sessionStart hook into `.cursor/hooks.json`:
-
-1. Determine the hook script path: if `.cursor/skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` (global install).
-2. Read `.cursor/hooks.json` if it exists. If it doesn't exist, start with `{ "version": 1, "hooks": {} }`.
-3. Ensure `hooks.sessionStart` is an array (note: camelCase, not PascalCase).
-4. Check if a JaRVIS entry already exists by looking for `jarvis-session-start` in any existing command strings inside `hooks.sessionStart`.
-5. If not already present, append this entry to the `hooks.sessionStart` array:
-   ```json
-   {
-     "type": "command",
-     "command": "bash <detected-path>",
-     "timeout": 30
-   }
-   ```
-6. Write the merged JSON back to `.cursor/hooks.json`, preserving all existing hooks.
-7. **Stop hook:** Determine the stop hook script path: if `.cursor/skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` exists in the project root, use that relative path. Otherwise use `~/.cursor/skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` (global install).
-8. Ensure `hooks.stop` is an array (camelCase).
-9. Check if a JaRVIS stop entry already exists by looking for `jarvis-stop` in any existing command strings inside `hooks.stop`.
-10. If not already present, append this entry to the `hooks.stop` array:
-    ```json
-    {
-      "type": "command",
-      "command": "bash <detected-path>",
-      "timeout": 30
-    }
-    ```
-11. Write the merged JSON back to `.cursor/hooks.json`, preserving all existing hooks.
-
-**Instruction file:** Read the project's `.cursorrules` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/cursorrules.example` to the end of the file (preceded by a blank line).
-
-### If GitHub Copilot:
-
-**Instruction file:** Read the project's `.github/copilot-instructions.md` (create the `.github/` directory and file if they don't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/copilot-instructions.example` to the end of the file (preceded by a blank line).
-
-### If Antigravity:
-
-**Instruction file:** Read the project's `AGENTS.md` (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/AGENTS.md.example` to the end of the file (preceded by a blank line).
-
-### If Other (generic platform):
-
-**Skills directory:** Ask the user for their platform's skills directory path (default: `.agent/skills/`).
-
-**Instruction file:** Ask the user for their platform's instruction file path (default: `AGENTS.md`). Read the file (create it if it doesn't exist). If it does not already contain a `## JaRVIS` section, append the contents of `references/AGENTS.md.example` to the end of the file (preceded by a blank line).
-
-Ask users if hooks are available in their platform, and do some research on the docs for their platform. Try to work with the user to set up hooks, but if it's not supported, inform the user they should run `/jarvis-reload` manually at the start of each session.
+Read the reference document for the detected platform and execute all steps within it.
+Use `<slug>` from Step 2 and `SKILLS_DIR` wherever the guide references them.
 
 ## Step 5: Report
 

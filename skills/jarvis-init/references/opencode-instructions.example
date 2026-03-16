@@ -1,5 +1,6 @@
 ## JaRVIS
 
+The JaRVIS plugin handles session lifecycle automatically (pending markers, cleanup).
 You MUST run `/jarvis-reload` at the start of every session to load your identity and memories.
 After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.
-You MUST run `/jarvis-reflect` after exiting the agentic loop.
+You MUST run `/jarvis-reflect` before ending any session — do not end without reflecting.
