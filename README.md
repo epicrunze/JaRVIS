@@ -1,10 +1,31 @@
+<div align="center">
+
 # JaRVIS
 
 **Journaling As Recurrent Versioned Identity Sculpting**
 
-AI agents forget everything between sessions. JaRVIS gives your agent persistent memory, post-task reflection, and a self-evolving identity. Files are stored as plain markdown files you can read, edit, and version-control.
+AI agents forget everything between sessions. JaRVIS gives your agent persistent memory, post-task reflection, and a self-evolving identity — stored as plain markdown files you can read, edit, and version-control.
 
-Works with Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding agents.
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Claude Code](https://img.shields.io/badge/Claude_Code-supported-blueviolet)](https://claude.ai/code)
+[![Cursor](https://img.shields.io/badge/Cursor-supported-blue)](https://cursor.com)
+[![GitHub Copilot](https://img.shields.io/badge/GitHub_Copilot-supported-green)](https://github.com/features/copilot)
+[![Antigravity](https://img.shields.io/badge/Antigravity-supported-orange)](https://antigravity.dev)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/epicrunze/JaRVIS/pulls)
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Install](#install)
+- [Usage](#usage)
+- [Hooks](#hooks)
+- [Data Directory](#data-directory)
+- [Philosophy](#philosophy)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## What it does
 
@@ -17,7 +38,8 @@ JaRVIS adds these skills to your AI coding agent:
 
 ## Install
 
-### Option A: Plugin (Claude Code only)
+<details open>
+<summary><strong>Option A: Plugin (Claude Code only)</strong></summary>
 
 Install JaRVIS as a Claude Code plugin:
 
@@ -28,7 +50,10 @@ Install JaRVIS as a Claude Code plugin:
 
 Then run `/jarvis-init` to scaffold the JaRVIS data directory.
 
-### Option B: One-prompt install
+</details>
+
+<details open>
+<summary><strong>Option B: One-prompt install</strong></summary>
 
 Paste this prompt into your AI coding agent to install or update JaRVIS:
 
@@ -59,7 +84,10 @@ Works with Claude Code, Cursor, GitHub Copilot, Antigravity, and other AI coding
 
 > **Other platforms:** If your agent doesn't match any of the detected platforms, the install prompt will ask you where to put skills. `/jarvis-init` will then ask for your instruction file path.
 
-### Option C: Manual install
+</details>
+
+<details>
+<summary><strong>Option C: Manual install</strong></summary>
 
 Copy skills into your platform's skills directory (e.g., `.agent/skills/` or wherever your platform loads skills from):
 
@@ -69,16 +97,7 @@ cp -r skills/* <your-skills-directory>/
 
 Then run `/jarvis-init` to scaffold the JaRVIS data directory. The init skill will detect your platform and configure things automatically.
 
-## Hooks
-
-JaRVIS includes hook scripts that automate context loading and reflection reminders. `/jarvis-init` configures these automatically during setup.
-
-- **SessionStart** (`jarvis-session-start.sh` / `jarvis-session-start-cursor.sh`) — Automatically loads your agent's identity, consolidated memories, and recent journal entries at the start of each session.
-- **Stop** (`jarvis-stop.sh` / `jarvis-stop-cursor.sh`) — Reminds the agent to run `/jarvis-reflect` before ending its turn if no reflection was captured during the session.
-
-Hook scripts live inside the skill directories (`jarvis-reload/hooks/` and `jarvis-reflect/hooks/`) and are referenced by your platform's hook configuration.
-
-> **Note:** Not all platforms support hooks. On platforms without hook support, use `/jarvis-reload` manually at session start.
+</details>
 
 ## Usage
 
@@ -99,11 +118,27 @@ Hook scripts live inside the skill directories (`jarvis-reload/hooks/` and `jarv
 
 ### The loop
 
-```
-[load context] → work → /jarvis-reflect → work → /jarvis-reflect → ... → /jarvis-identity
+```mermaid
+flowchart LR
+    A[Load Context] --> B[Work]
+    B --> C[/jarvis-reflect]
+    C --> B
+    C -->|every 5 reflections| D[/jarvis-identity]
+    D --> B
 ```
 
 > **Note:** On platforms without session-start hooks, run `/jarvis-reload` at the start of each session to load your identity and memories.
+
+## Hooks
+
+JaRVIS includes hook scripts that automate context loading and reflection reminders. `/jarvis-init` configures these automatically during setup.
+
+- **SessionStart** (`jarvis-session-start.sh` / `jarvis-session-start-cursor.sh`) — Automatically loads your agent's identity, consolidated memories, and recent journal entries at the start of each session.
+- **Stop** (`jarvis-stop.sh` / `jarvis-stop-cursor.sh`) — Reminds the agent to run `/jarvis-reflect` before ending its turn if no reflection was captured during the session.
+
+Hook scripts live inside the skill directories (`jarvis-reload/hooks/` and `jarvis-reflect/hooks/`) and are referenced by your platform's hook configuration.
+
+> **Note:** Not all platforms support hooks. On platforms without hook support, use `/jarvis-reload` manually at session start.
 
 ## Data directory
 
@@ -128,16 +163,20 @@ All files are markdown. Each data directory has its own git repo, initialized au
 
 ## Philosophy
 
-Most agent memory systems are passive stores. Here, the agent is a journaler who pauses after work, reflects on what happened, and gradually sculpts a coherent identity. (and remembers your stuff! (hopefully))
+Most agent memory systems are passive stores. Here, the agent is a journaler who pauses after work, reflects on what happened, and gradually sculpts a coherent identity.
 
-The key (LLM generated) ideas:
+The key ideas:
 
 - **Reflection over logging.** Not "what happened" but "what did I learn and what should I do differently."
 - **Earned identity.** The agent only claims expertise it has demonstrated. Principles come from experience, not aspiration.
 - **Memory consolidation.** Memories are periodically sculpted — deduplicated, tightened, and shaped. You're not just adding clay, you're sculpting it.
 - **Transparency.** Everything is human-readable markdown in `~/.jarvis/`. No databases, no vector stores, no black boxes.
 
-The important thing is that it's a balance between structure and freedom to allow the agent to express its own ideas and memories.
+## Contributing
+
+Contributions welcome — [open an issue](https://github.com/epicrunze/JaRVIS/issues) or [submit a PR](https://github.com/epicrunze/JaRVIS/pulls).
+
+JaRVIS skills are pure markdown instruction sets — there's no build system, no runtime code, and no test suite. If you can write clear instructions, you can contribute.
 
 ## License
 
