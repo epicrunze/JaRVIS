@@ -54,7 +54,7 @@ Call the result `SKILLS_DIR`.
 Run the init script to resolve the path, scaffold the directory, and create a git repo:
 
 ```bash
-bash $SKILLS_DIR/scripts/jarvis-init.sh [--migrate] [--project-dir <path>]
+bash $SKILLS_DIR/jarvis-init/scripts/jarvis-init.sh [--migrate] [--project-dir <path>]
 ```
 
 - Pass `--migrate` if the user agreed to migrate in Step 1.
@@ -76,7 +76,7 @@ Then read and follow the corresponding setup guide:
 | Other | `references/platform-other.md` |
 
 Read the reference document for the detected platform and execute all steps within it.
-Use `<slug>` from Step 2 and `SKILLS_DIR` wherever the guide references them.
+Use `<slug>` from Step 4 and `SKILLS_DIR` from Step 3 wherever the guide references them.
 
 ## Step 5: Report
 

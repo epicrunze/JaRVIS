@@ -39,7 +39,7 @@ When JaRVIS is installed by **copying skills** into `.claude/skills/` or `~/.cla
 
 ## Permissions
 
-Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules. Use the project-specific path (`~/.jarvis/projects/<slug>/`) resolved from Step 2, not the global `~/.jarvis/` path:
+Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules. Use the project-specific path (`~/.jarvis/projects/<slug>/`) resolved from Step 4, not the global `~/.jarvis/` path:
 
 ```json
 {
@@ -57,7 +57,7 @@ Read `.claude/settings.local.json` in the project root (create it if it doesn't 
 }
 ```
 
-Use the `SKILLS_DIR` resolved in Step 4 of the init skill for all three script paths.
+Use the `SKILLS_DIR` resolved in Step 3 of the init skill for all three script paths.
 
 ## Instruction file
 
