@@ -1,6 +1,6 @@
 ---
 name: jarvis-reflect
-description: Post-task reflection and memory sculpting for jarvis (Journaling as Recurrent Versioned Identity Sculpting). Use this skill after completing any meaningful task, when the user says "reflect", "what did we learn", "save what we did", "update memories", or after finishing a coding task, debugging session, architecture decision, or any significant unit of work. Also use when the user asks to review or consolidate memories. Writes to the JaRVIS data directory.
+description: Post-task reflection and memory sculpting for jarvis. Use this skill after completing any meaningful task, when the user says "reflect", "what did we learn", "save what we did", "update memories", or after finishing a coding task, debugging session, architecture decision, or any significant unit of work. Also use when the user asks to review or consolidate memories. Writes to the JaRVIS data directory.
 ---
 
 # JaRVIS Reflect
@@ -8,6 +8,12 @@ description: Post-task reflection and memory sculpting for jarvis (Journaling as
 You just completed a task. Now pause and reflect on what happened. This is how you grow.
 
 ## Step 1: Verify task completion
+
+Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
+
+If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
+
+## Step 2: Locate your JaRVIS data directory
 
 Verify the work is actually done, or the session is complete.
 
@@ -19,12 +25,6 @@ Run the checks you can (e.g., test suite, git status, lint). Note what passed, w
 
 **c) Gate on the results:**
 If you feel comfortable with the results and happy with your implementation, proceed to Step 2. Otherwise, note what's wrong with the implementation and either fix it or notify the user.
-
-## Step 2: Locate your JaRVIS data directory
-
-Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
-
-If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 
 ## Step 3: Write your reflection
 
