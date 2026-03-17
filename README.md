@@ -120,11 +120,30 @@ Then run `/jarvis-init` to scaffold the JaRVIS data directory. The init skill wi
 
 ```mermaid
 flowchart TD
-    A[Load Context] --> B[Work]
-    B --> C["/jarvis-reflect"]
+    A["🔄 /jarvis-reload"] --> B["⚡ Work"]
+    B --> C["📝 /jarvis-reflect"]
     C --> B
-    C -->|every 5 reflections| D["/jarvis-identity"]
+    C -->|every 5 reflections| D["🧠 /jarvis-identity"]
     D --> B
+
+    subgraph store ["📂 ~/.jarvis/projects/&lt;slug&gt;"]
+        J[("📓 Journals")]
+        M[("💾 Memories")]
+        I[("🪪 Identity")]
+    end
+
+    A -. reads .-> I
+    A -. reads .-> M
+    A -. reads .-> J
+    C -. writes .-> J
+    C -. updates .-> M
+    D -. evolves .-> I
+
+    classDef cmd fill:#2d333b,stroke:#58a6ff,color:#c9d1d9
+    classDef data fill:#1c2128,stroke:#3fb950,color:#adbac7
+
+    class A,B,C,D cmd
+    class J,M,I data
 ```
 
 > **Note:** On platforms without session-start hooks, run `/jarvis-reload` at the start of each session to load your identity and memories.
