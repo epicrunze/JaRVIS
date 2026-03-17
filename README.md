@@ -129,7 +129,7 @@ flowchart TD
     subgraph store ["📂 ~/.jarvis/projects/&lt;slug&gt;"]
         J[("📓 Journals")]
         M[("💾 Memories")]
-        I[("🪪 Identity")]
+        I[("🧬 Identity")]
     end
 
     A -. reads .-> I
@@ -137,10 +137,12 @@ flowchart TD
     A -. reads .-> J
     C -. writes .-> J
     C -. updates .-> M
+    D -. reads .-> M
+    D -. reads .-> J
     D -. evolves .-> I
 
     classDef cmd fill:#2d333b,stroke:#58a6ff,color:#c9d1d9
-    classDef data fill:#1c2128,stroke:#3fb950,color:#adbac7
+    classDef data fill:#2d333b,stroke:#3fb950,color:#adbac7
 
     class A,B,C,D cmd
     class J,M,I data
