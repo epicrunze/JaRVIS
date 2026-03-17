@@ -9,13 +9,14 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
 ## Repository Structure
 
 - `hooks/hooks.json` — Claude Code plugin hooks (auto-registers SessionStart + Stop when installed as a plugin)
-- `skills/` — Contains the six JaRVIS skills, each in its own directory with a `SKILL.md`
+- `skills/` — Contains the seven JaRVIS skills, each in its own directory with a `SKILL.md`
   - `jarvis-init/` — One-time setup: scaffolds the `~/.jarvis/projects/<slug>/` data directory
   - `jarvis-reload/` — Mid-session reload: re-reads identity and memories from the JaRVIS data directory
   - `jarvis-reflect/` — Post-task reflection: writes journal entries, updates memories, triggers identity evolution every 5 reflections
   - `jarvis-identity/` — Identity evolution: updates `IDENTITY.md` based on accumulated experience
   - `jarvis-validate/` — Format validation: checks journals, memories, identity, and growth log for correctness
   - `jarvis-search/` — Structured search: keyword, tag, date, and section-based search across all JaRVIS artifacts
+  - `jarvis-toggle/` — Toggle: enables or disables JaRVIS for the current project
 - `skills/*/scripts/resolve-dir.sh` — Shared path resolver (sets `JARVIS_DIR`); each skill carries its own copy
 - `skills/jarvis-init/scripts/jarvis-init.sh` — Init automation script (scaffold, migrate, git init)
 - `skills/jarvis-init/references/scaffolding.md` — Templates for bootstrapping a new JaRVIS data directory
@@ -52,6 +53,8 @@ Skills are installed by copying skill folders into the platform's skills directo
 Setup is a one-time `/jarvis-init` to scaffold the data directory at `~/.jarvis/projects/<slug>/`. Session context is loaded automatically via the `SessionStart` hook (identity, memories, last journal entry). The ongoing workflow is a loop: work → `/jarvis-reflect` → work → `/jarvis-reflect` → ... → `/jarvis-identity` (every 5 reflections). Use `/jarvis-reload` mid-session to reload context after reflections update memories. Use `/jarvis-validate` to check JaRVIS artifacts for format correctness. Use `/jarvis-search` to find past entries by keyword, tag, date range, or section.
 
 All agent artifacts (identity, memories, journals) are flat markdown files stored in `~/.jarvis/projects/<slug>/` under the user's home directory. The path is derived by slugifying the project directory, or can be overridden with the `JARVIS_DIR` env var. Each data directory has its own git repo for version history.
+
+JaRVIS can be temporarily disabled per-session by setting `JARVIS_DISABLE=true` in the environment, or persistently per-project by running `/jarvis-toggle` (which creates a `.jarvis-disabled` marker file in the data directory). Both mechanisms cause all hooks to exit early without loading context or blocking.
 
 Each SKILL.md uses YAML frontmatter (`name`, `description`, `disable-model-invocation`) and contains step-by-step instructions that the agent's skill system executes directly.
 

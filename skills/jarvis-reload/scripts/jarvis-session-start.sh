@@ -16,6 +16,17 @@
 
 set -euo pipefail
 
+# Check for disable toggle (env var — before resolving JARVIS_DIR)
+if [[ "${JARVIS_DISABLE:-false}" == "true" ]]; then
+  # Output minimal JSON so the hook system doesn't error
+  if command -v jq &>/dev/null; then
+    jq -n '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: ""}, systemMessage: ""}'
+  else
+    printf '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":""},"systemMessage":""}\n'
+  fi
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 if [ -f "$SCRIPT_DIR/resolve-dir.sh" ]; then
@@ -52,6 +63,12 @@ if [[ ! -d "$JARVIS_DIR" ]]; then
   _jarvis_output_json \
     "JaRVIS is not set up for this project. Run /jarvis-init to get started." \
     "⚠️ JaRVIS is not set up for this project. Run /jarvis-init to get started."
+  exit 0
+fi
+
+# Check for disable toggle (persistent marker file)
+if [[ -f "$JARVIS_DIR/.jarvis-disabled" ]]; then
+  _jarvis_output_json "" "JaRVIS is disabled for this project. Run /jarvis-toggle to re-enable."
   exit 0
 fi
 

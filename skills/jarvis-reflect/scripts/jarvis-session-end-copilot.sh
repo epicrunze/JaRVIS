@@ -8,6 +8,11 @@
 
 set -euo pipefail
 
+if [[ "${JARVIS_DISABLE:-false}" == "true" ]]; then
+  echo '{}'
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- Resolve JARVIS_DIR ---
@@ -23,6 +28,12 @@ fi
 
 # --- If JaRVIS isn't set up, stay silent ---
 if [[ ! -d "$JARVIS_DIR" ]]; then
+  echo '{}'
+  exit 0
+fi
+
+# Check for disable toggle (persistent marker file)
+if [[ -f "$JARVIS_DIR/.jarvis-disabled" ]]; then
   echo '{}'
   exit 0
 fi

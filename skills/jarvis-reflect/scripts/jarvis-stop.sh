@@ -13,6 +13,11 @@
 
 set -euo pipefail
 
+# Check for disable toggle (env var)
+if [[ "${JARVIS_DISABLE:-false}" == "true" ]]; then
+  exit 0
+fi
+
 # --- Read hook input from stdin ---
 INPUT=$(cat 2>/dev/null || true)
 
@@ -50,6 +55,11 @@ if [[ ! -d "$JARVIS_DIR" ]]; then
   exit 0
 fi
 
+# Check for disable toggle (persistent marker file)
+if [[ -f "$JARVIS_DIR/.jarvis-disabled" ]]; then
+  exit 0
+fi
+
 # --- Read session_id from stdin ---
 SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
 # fallback without jq
@@ -60,10 +70,10 @@ fi
 # --- Check for this session's pending marker ---
 if [[ -n "$SESSION_ID" && -f "$JARVIS_DIR/.pending-$SESSION_ID" ]]; then
   # This session hasn't reflected yet → block
-  REASON="You haven't reflected on this session yet. Run /jarvis-reflect if needed before ending."
+  REASON="Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session."
   if command -v jq &>/dev/null; then
     jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
   else
-    echo '{"decision":"block","reason":"You haven'\''t reflected on this session yet. Run /jarvis-reflect if needed before ending."}'
+    echo '{"decision":"block","reason":"Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session."}'
   fi
 fi

@@ -6,6 +6,11 @@
 
 set -euo pipefail
 
+if [[ "${JARVIS_DISABLE:-false}" == "true" ]]; then
+  echo '{"agent_message":""}'
+  exit 0
+fi
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Read Cursor's hook input from stdin
