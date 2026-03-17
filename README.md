@@ -121,9 +121,9 @@ Then run `/jarvis-init` to scaffold the JaRVIS data directory. The init skill wi
 ```mermaid
 flowchart LR
     A[Load Context] --> B[Work]
-    B --> C[/jarvis-reflect]
+    B --> C["/jarvis-reflect"]
     C --> B
-    C -->|every 5 reflections| D[/jarvis-identity]
+    C -->|every 5 reflections| D["/jarvis-identity"]
     D --> B
 ```
 
