@@ -9,7 +9,7 @@ You just completed a task. Now pause and reflect on what happened. This is how y
 
 ## Step 1: Verify task completion
 
-Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
+Run `JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)` to set `JARVIS_DIR`.
 
 If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 

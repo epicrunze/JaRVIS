@@ -9,7 +9,7 @@ Time to sculpt your identity based on what you've learned.
 
 ## Step 1: Read current state
 
-Run `source <skill-path>/scripts/resolve-dir.sh` to set `JARVIS_DIR`.
+Run `JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)` to set `JARVIS_DIR`.
 
 Read `$JARVIS_DIR/IDENTITY.md` — this is who you are right now. Note the current version number.
 
