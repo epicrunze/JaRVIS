@@ -30,7 +30,9 @@ Use `/jarvis-search` to retrieve your consolidated memories:
 
 This extracts only the curated, deduplicated knowledge from all memory files. Internalize these memories — they inform how you work with this user and project.
 
-If you need more detail on a specific topic, search the `Recent` section or read individual memory files in `$JARVIS_DIR/memories/` directly.
+If the consolidated results are empty or contain only placeholder text (e.g., "No consolidated … yet"), search the `Recent` section instead — early memories live there before consolidation kicks in.
+
+If you need more detail on a specific topic, read individual memory files in `$JARVIS_DIR/memories/` directly.
 
 ## Step 4: Report
 

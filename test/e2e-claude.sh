@@ -278,10 +278,131 @@ else
 fi
 
 # ============================================================
-# Step 6: /jarvis-search
+# Step 6: /jarvis-toggle (disable + re-enable)
 # ============================================================
 echo ""
-printf "${BOLD}=== Step 5: /jarvis-search ===${RESET}\n"
+printf "${BOLD}=== Step 6: /jarvis-toggle (disable) ===${RESET}\n"
+
+# First, ensure CLAUDE.md has a ## JaRVIS section (init should have created it)
+if grep -q '## JaRVIS' "$TEMP_PROJECT/CLAUDE.md" 2>/dev/null; then
+  pass "CLAUDE.md has ## JaRVIS section before toggle"
+else
+  skip "CLAUDE.md has no ## JaRVIS section — toggle test may be incomplete"
+fi
+
+# Toggle OFF
+set +e
+output=$(run_claude "/jarvis-toggle")
+toggle_off_rc=$?
+set -e
+
+if [[ $toggle_off_rc -eq 0 ]]; then
+  pass "jarvis-toggle (disable) completed without error"
+else
+  fail "jarvis-toggle (disable) exited with code $toggle_off_rc"
+fi
+
+if [[ -f "$DATA_DIR/.jarvis-disabled" ]]; then
+  pass ".jarvis-disabled marker created"
+else
+  fail ".jarvis-disabled marker not created"
+fi
+
+if grep -q '## JaRVIS' "$TEMP_PROJECT/CLAUDE.md" 2>/dev/null; then
+  fail "## JaRVIS section still in CLAUDE.md after disable"
+else
+  pass "## JaRVIS section removed from CLAUDE.md"
+fi
+
+# Verify session-start hook produces no identity when disabled
+set +e
+hook_output=$(echo '{"session_id": "toggle-test"}' | JARVIS_DIR="$DATA_DIR" bash "$SCRIPT_DIR/skills/jarvis-reload/scripts/jarvis-session-start.sh" 2>&1)
+set -e
+if echo "$hook_output" | grep -qi "TestBot\|identity"; then
+  fail "Session-start hook still loads identity when disabled"
+else
+  pass "Session-start hook skips identity when disabled"
+fi
+
+# Toggle ON
+echo ""
+printf "${BOLD}=== Step 6b: /jarvis-toggle (re-enable) ===${RESET}\n"
+
+set +e
+output=$(run_claude "/jarvis-toggle")
+toggle_on_rc=$?
+set -e
+
+if [[ $toggle_on_rc -eq 0 ]]; then
+  pass "jarvis-toggle (re-enable) completed without error"
+else
+  fail "jarvis-toggle (re-enable) exited with code $toggle_on_rc"
+fi
+
+if [[ -f "$DATA_DIR/.jarvis-disabled" ]]; then
+  fail ".jarvis-disabled marker still exists after re-enable"
+else
+  pass ".jarvis-disabled marker removed"
+fi
+
+if grep -q '## JaRVIS' "$TEMP_PROJECT/CLAUDE.md" 2>/dev/null; then
+  pass "## JaRVIS section restored in CLAUDE.md"
+else
+  fail "## JaRVIS section not restored in CLAUDE.md"
+fi
+
+# ============================================================
+# Step 7: /jarvis-identity
+# ============================================================
+echo ""
+printf "${BOLD}=== Step 7: /jarvis-identity ===${RESET}\n"
+
+# Capture version before
+version_before=$(grep -o 'Version.*[0-9]\+\.[0-9]\+' "$DATA_DIR/IDENTITY.md" 2>/dev/null || echo "0.0")
+
+set +e
+output=$(run_claude "/jarvis-identity")
+identity_rc=$?
+set -e
+
+if [[ $identity_rc -eq 0 ]]; then
+  pass "jarvis-identity completed without error"
+else
+  fail "jarvis-identity exited with code $identity_rc" "Output: $(echo "$output" | tail -5)"
+fi
+
+# Verify IDENTITY.md version incremented
+if grep -q 'Version.*0\.1\|version.*0\.1' "$DATA_DIR/IDENTITY.md" 2>/dev/null; then
+  pass "IDENTITY.md version incremented to 0.1"
+else
+  current_version=$(grep -o 'Version.*[0-9]\+\.[0-9]\+' "$DATA_DIR/IDENTITY.md" 2>/dev/null || echo "unknown")
+  fail "IDENTITY.md version not 0.1" "Current: $current_version"
+fi
+
+# Verify GROWTH.md has a new row
+today=$(date +%Y-%m-%d)
+growth_rows=$(tail -n +5 "$DATA_DIR/GROWTH.md" 2>/dev/null | grep -c '^|' || true)
+if [[ "$growth_rows" -ge 1 ]]; then
+  pass "GROWTH.md has new row(s) ($growth_rows data row(s))"
+else
+  fail "GROWTH.md has no data rows"
+fi
+
+# Verify git log shows identity commit
+set +e
+git_log=$(cd "$DATA_DIR" && git log --oneline -5 2>&1)
+set -e
+if echo "$git_log" | grep -qi "identity"; then
+  pass "Git log shows identity commit"
+else
+  fail "Git log missing identity commit" "Log: $git_log"
+fi
+
+# ============================================================
+# Step 8: /jarvis-search
+# ============================================================
+echo ""
+printf "${BOLD}=== Step 8: /jarvis-search ===${RESET}\n"
 
 set +e
 output=$(bash "$SEARCH" --jarvis-dir "$DATA_DIR" --query "hello" 2>&1)

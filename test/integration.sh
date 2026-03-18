@@ -12,6 +12,10 @@ VALIDATE="$SCRIPT_DIR/skills/jarvis-validate/scripts/validate.sh"
 SEARCH="$SCRIPT_DIR/skills/jarvis-search/scripts/search.sh"
 RESOLVE_DIR="$SCRIPT_DIR/skills/jarvis-init/scripts/resolve-dir.sh"
 JARVIS_INIT="$SCRIPT_DIR/skills/jarvis-init/scripts/jarvis-init.sh"
+CURSOR_SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh"
+CURSOR_STOP="$SCRIPT_DIR/skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh"
+COPILOT_SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/scripts/jarvis-session-start-copilot.sh"
+COPILOT_SESSION_END="$SCRIPT_DIR/skills/jarvis-reflect/scripts/jarvis-session-end-copilot.sh"
 
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf "$TEST_ROOT"' EXIT
@@ -73,6 +77,31 @@ assert_file_exists() {
     FAIL_COUNT=$((FAIL_COUNT + 1))
     printf "  ${RED}FAIL${RESET} %s\n" "$label"
     printf "       file not found: %s\n" "$path"
+  fi
+}
+
+assert_file_not_exists() {
+  local label="$1" path="$2"
+  if [[ ! -f "$path" ]]; then
+    PASS_COUNT=$((PASS_COUNT + 1))
+    printf "  ${GREEN}PASS${RESET} %s\n" "$label"
+  else
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    printf "  ${RED}FAIL${RESET} %s\n" "$label"
+    printf "       file should not exist: %s\n" "$path"
+  fi
+}
+
+assert_equals() {
+  local label="$1" actual="$2" expected="$3"
+  if [[ "$actual" == "$expected" ]]; then
+    PASS_COUNT=$((PASS_COUNT + 1))
+    printf "  ${GREEN}PASS${RESET} %s\n" "$label"
+  else
+    FAIL_COUNT=$((FAIL_COUNT + 1))
+    printf "  ${RED}FAIL${RESET} %s\n" "$label"
+    printf "       expected: %s\n" "$expected"
+    printf "       got: %s\n" "$actual"
   fi
 }
 
@@ -779,6 +808,206 @@ assert_contains "Template has Core section" "$identity_content" "## Core"
 assert_contains "Template has version 0.0" "$identity_content" "0.0"
 growth_content=$(cat "$template_dir/GROWTH.md")
 assert_contains "Template has Growth Log table" "$growth_content" "| Date | Version |"
+
+# ============================================================
+# Group 8: jarvis-session-start-cursor.sh
+# ============================================================
+group "jarvis-session-start-cursor.sh"
+
+# Test 1: Populated data dir → output is valid JSON with agent_message key
+test_dir="$TEST_ROOT/cursor_ss1"
+scaffold_jarvis_dir "$test_dir"
+create_populated_identity "$test_dir"
+add_consolidated_memory "$test_dir/memories/preferences.md" "- User likes dark mode"
+output=$(echo '{"conversation_id": "cursor-123"}' | JARVIS_DIR="$test_dir" bash "$CURSOR_SESSION_START" 2>&1)
+assert_contains "Populated dir → has agent_message key" "$output" '"agent_message"'
+
+# Test 2: agent_message contains identity context (TestBot)
+assert_contains "agent_message contains identity (TestBot)" "$output" "TestBot"
+
+# Test 3: JARVIS_DISABLE=true → empty agent_message
+output=$(echo '{"conversation_id": "cursor-123"}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$CURSOR_SESSION_START" 2>&1)
+assert_contains "JARVIS_DISABLE=true → has agent_message key" "$output" '"agent_message"'
+assert_not_contains "JARVIS_DISABLE=true → no identity in output" "$output" "TestBot"
+
+# Test 4: No data dir → output contains "not set up" in agent_message
+test_dir="$TEST_ROOT/cursor_ss2"
+mkdir -p "$test_dir"
+output=$(echo '{"conversation_id": "cursor-456"}' | JARVIS_DIR="$test_dir/nonexistent" bash "$CURSOR_SESSION_START" 2>&1)
+assert_contains "No data dir → 'not set up' message" "$output" "not set up"
+
+# ============================================================
+# Group 9: jarvis-stop-cursor.sh
+# ============================================================
+group "jarvis-stop-cursor.sh"
+
+# Test 1: Pending marker exists → output has agent_message with blocking reason
+test_dir="$TEST_ROOT/cursor_stop1"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-cursor-456"
+output=$(echo '{"conversation_id": "cursor-456"}' | JARVIS_DIR="$test_dir" bash "$CURSOR_STOP" 2>&1)
+assert_contains "Pending marker → has agent_message" "$output" '"agent_message"'
+assert_contains "Pending marker → has reflect reminder" "$output" "reflect"
+
+# Test 2: No pending marker → empty/silent JSON
+test_dir="$TEST_ROOT/cursor_stop2"
+scaffold_jarvis_dir "$test_dir"
+output=$(echo '{"conversation_id": "cursor-789"}' | JARVIS_DIR="$test_dir" bash "$CURSOR_STOP" 2>&1)
+assert_contains "No pending marker → has agent_message key" "$output" '"agent_message"'
+assert_not_contains "No pending marker → no reflect reminder" "$output" "reflect"
+
+# Test 3: JARVIS_DISABLE=true → empty JSON output
+test_dir="$TEST_ROOT/cursor_stop3"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-cursor-disabled"
+output=$(echo '{"conversation_id": "cursor-disabled"}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$CURSOR_STOP" 2>&1)
+assert_contains "JARVIS_DISABLE=true → has agent_message key" "$output" '"agent_message"'
+assert_not_contains "JARVIS_DISABLE=true → no blocking" "$output" "reflect"
+
+# ============================================================
+# Group 10: jarvis-session-start-copilot.sh
+# ============================================================
+group "jarvis-session-start-copilot.sh"
+
+# Test 1: Valid input → creates .pending-copilot-* marker file
+test_dir="$TEST_ROOT/copilot_ss1"
+scaffold_jarvis_dir "$test_dir"
+output=$(echo '{"timestamp": 1710500000}' | JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_START" 2>&1)
+assert_file_exists "Creates pending marker" "$test_dir/.pending-copilot-1710500000"
+
+# Test 2: Output is always {}
+assert_equals "Output is {}" "$(echo "$output" | tr -d '[:space:]')" "{}"
+
+# Test 3: JARVIS_DISABLE=true → no marker created, output {}
+test_dir="$TEST_ROOT/copilot_ss2"
+scaffold_jarvis_dir "$test_dir"
+output=$(echo '{"timestamp": 1710500001}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_START" 2>&1)
+assert_file_not_exists "JARVIS_DISABLE=true → no marker" "$test_dir/.pending-copilot-1710500001"
+assert_equals "JARVIS_DISABLE=true → output {}" "$(echo "$output" | tr -d '[:space:]')" "{}"
+
+# Test 4: Missing timestamp → falls back to current epoch, still creates marker
+test_dir="$TEST_ROOT/copilot_ss3"
+scaffold_jarvis_dir "$test_dir"
+output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_START" 2>&1)
+# Should create a .pending-copilot-<epoch> marker
+marker_count=$(ls -1 "$test_dir"/.pending-copilot-* 2>/dev/null | wc -l)
+if [[ "$marker_count" -ge 1 ]]; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf "  ${GREEN}PASS${RESET} Missing timestamp → fallback marker created\n"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf "  ${RED}FAIL${RESET} Missing timestamp → fallback marker created\n"
+  printf "       no .pending-copilot-* marker found\n"
+fi
+
+# ============================================================
+# Group 11: jarvis-session-end-copilot.sh
+# ============================================================
+group "jarvis-session-end-copilot.sh"
+
+# Test 1: Existing .pending-copilot-* markers → all cleaned up
+test_dir="$TEST_ROOT/copilot_end1"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-copilot-111" "$test_dir/.pending-copilot-222" "$test_dir/.pending-copilot-333"
+output=$(echo '{"timestamp": 999}' | JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_END" 2>&1)
+marker_count=$(ls -1 "$test_dir"/.pending-copilot-* 2>/dev/null | wc -l)
+assert_equals "All copilot markers cleaned up" "$marker_count" "0"
+
+# Test 2: Output is always {}
+assert_equals "Output is {}" "$(echo "$output" | tr -d '[:space:]')" "{}"
+
+# Test 3: JARVIS_DISABLE=true → exit silently
+test_dir="$TEST_ROOT/copilot_end2"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-copilot-444"
+output=$(echo '{"timestamp": 999}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_END" 2>&1)
+assert_equals "JARVIS_DISABLE=true → output {}" "$(echo "$output" | tr -d '[:space:]')" "{}"
+# Note: markers may or may not be cleaned when disabled — the env var check exits early
+
+# Test 4: .jarvis-disabled marker → exit silently
+test_dir="$TEST_ROOT/copilot_end3"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-copilot-555" "$test_dir/.jarvis-disabled"
+output=$(echo '{"timestamp": 999}' | JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_END" 2>&1)
+assert_equals ".jarvis-disabled marker → output {}" "$(echo "$output" | tr -d '[:space:]')" "{}"
+
+# ============================================================
+# Group 12: JARVIS_DISABLE env var
+# ============================================================
+group "JARVIS_DISABLE env var"
+
+# Test 1: session-start with JARVIS_DISABLE=true → minimal JSON, no identity context
+test_dir="$TEST_ROOT/disable_env1"
+scaffold_jarvis_dir "$test_dir"
+create_populated_identity "$test_dir"
+output=$(echo '{"session_id": "dis1"}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+assert_not_contains "JARVIS_DISABLE → no identity in session-start" "$output" "TestBot"
+
+# Test 2: stop hook with JARVIS_DISABLE=true → no blocking
+test_dir="$TEST_ROOT/disable_env2"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-dis2"
+output=$(echo '{"session_id": "dis2"}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "JARVIS_DISABLE → no blocking on stop" "$output" "block"
+
+# Test 3: Markers NOT created when disabled
+test_dir="$TEST_ROOT/disable_env3"
+scaffold_jarvis_dir "$test_dir"
+output=$(echo '{"session_id": "dis3", "source": "startup"}' | JARVIS_DISABLE=true JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+assert_file_not_exists "JARVIS_DISABLE → no pending marker created" "$test_dir/.pending-dis3"
+
+# ============================================================
+# Group 13: .jarvis-disabled marker file
+# ============================================================
+group ".jarvis-disabled marker file"
+
+# Test 1: session-start with .jarvis-disabled → no identity context
+test_dir="$TEST_ROOT/disable_marker1"
+scaffold_jarvis_dir "$test_dir"
+create_populated_identity "$test_dir"
+touch "$test_dir/.jarvis-disabled"
+output=$(echo '{"session_id": "mkr1"}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+assert_not_contains ".jarvis-disabled → no identity loaded" "$output" "TestBot"
+
+# Test 2: stop hook with .jarvis-disabled → no blocking
+test_dir="$TEST_ROOT/disable_marker2"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-mkr2" "$test_dir/.jarvis-disabled"
+output=$(echo '{"session_id": "mkr2"}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
+assert_not_contains ".jarvis-disabled → no blocking on stop" "$output" "block"
+
+# ============================================================
+# Group 14: Stale marker cleanup
+# ============================================================
+group "Stale marker cleanup"
+
+# Test 1: Old markers (>24h) are cleaned up by session-start
+test_dir="$TEST_ROOT/stale1"
+scaffold_jarvis_dir "$test_dir"
+# Create stale markers and set their mtime to 25 hours ago
+touch "$test_dir/.pending-stale-old1" "$test_dir/.pending-stale-old2"
+# Use touch -d to set time to 25 hours ago
+stale_time=$(date -d '25 hours ago' '+%Y%m%d%H%M.%S' 2>/dev/null || date -v-25H '+%Y%m%d%H%M.%S' 2>/dev/null)
+if [[ -n "$stale_time" ]]; then
+  touch -t "${stale_time%.*}" "$test_dir/.pending-stale-old1" "$test_dir/.pending-stale-old2" 2>/dev/null || \
+    touch -d '25 hours ago' "$test_dir/.pending-stale-old1" "$test_dir/.pending-stale-old2" 2>/dev/null || true
+fi
+# Create a fresh marker
+touch "$test_dir/.pending-fresh"
+
+# Run session-start to trigger cleanup
+output=$(echo '{"session_id": "stale-test"}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+
+# Verify stale markers removed (only if we could set mtime)
+if [[ -n "$stale_time" ]]; then
+  assert_file_not_exists "Stale marker old1 cleaned up" "$test_dir/.pending-stale-old1"
+  assert_file_not_exists "Stale marker old2 cleaned up" "$test_dir/.pending-stale-old2"
+else
+  printf "  ${YELLOW:-}SKIP${RESET} Stale marker cleanup (touch -t not available)\n"
+fi
+
+# Verify fresh marker is preserved
+assert_file_exists "Fresh marker preserved" "$test_dir/.pending-fresh"
 
 # ============================================================
 # Summary

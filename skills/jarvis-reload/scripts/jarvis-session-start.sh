@@ -124,18 +124,29 @@ if [[ -f "$JARVIS_DIR/IDENTITY.md" ]]; then
   fi
 fi
 
-# --- Load consolidated memories ---
+# --- Load consolidated memories (fall back to recent if consolidated is empty) ---
 if [[ -d "$JARVIS_DIR/memories" ]]; then
   for memfile in "$JARVIS_DIR/memories"/*.md; do
     [[ -f "$memfile" ]] || continue
     # Extract the ## Consolidated section
     consolidated=$(awk '/^## Consolidated$/{found=1; next} /^## /{found=0} found' "$memfile" | head -50)
-    if [[ -n "$consolidated" ]]; then
+    # Check if consolidated has real content (not just a placeholder)
+    if [[ -n "$consolidated" ]] && ! echo "$consolidated" | grep -qi '^No consolidated .* yet'; then
       basename_no_ext=$(basename "$memfile" .md)
       _ctx+=""$'\n'
       _ctx+="## Memories: $basename_no_ext"$'\n'
       _ctx+=""$'\n'
       _ctx+="$consolidated"$'\n'
+    else
+      # Fall back to recent entries (latest 50 lines, blank lines stripped)
+      recent=$(awk '/^## Recent$/{found=1; next} /^## /{found=0} found' "$memfile" | sed '/^$/d' | tail -50)
+      if [[ -n "$recent" ]]; then
+        basename_no_ext=$(basename "$memfile" .md)
+        _ctx+=""$'\n'
+        _ctx+="## Memories: $basename_no_ext"$'\n'
+        _ctx+=""$'\n'
+        _ctx+="$recent"$'\n'
+      fi
     fi
   done
 fi
