@@ -151,43 +151,6 @@ if [[ -d "$JARVIS_DIR/memories" ]]; then
   done
 fi
 
-# --- Load 3 most recent journal entries ---
-if [[ -d "$JARVIS_DIR/journal" ]]; then
-  journal_files=$(ls -1t "$JARVIS_DIR/journal"/*.md 2>/dev/null | head -3 || true)
-  if [[ -n "$journal_files" ]]; then
-    _ctx+=""$'\n'
-    _ctx+="## Recent Sessions"$'\n'
-    while IFS= read -r journal_file; do
-      [[ -f "$journal_file" ]] || continue
-      # Get the heading (first markdown heading)
-      heading=$(grep -m1 '^# ' "$journal_file" 2>/dev/null || true)
-      # Extract the Task Summary section
-      task_summary=$(awk '/^## Task Summary$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
-      # Extract the Key Decisions section
-      key_decisions=$(awk '/^## Memory Updates$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
-      # Extract the Lessons section
-      lessons=$(awk '/^## Lessons Learned$/{found=1; next} /^## /{found=0} found' "$journal_file" | head -20)
-      if [[ -n "$heading" || -n "$task_summary" ]]; then
-        _ctx+=""$'\n'
-        [[ -n "$heading" ]] && _ctx+="$heading"$'\n'
-        [[ -n "$task_summary" ]] && _ctx+="$task_summary"$'\n'
-        if [[ -n "$key_decisions" ]]; then
-          _ctx+=""$'\n'
-          _ctx+="### Memory Updates"$'\n'
-          _ctx+=""$'\n'
-          _ctx+="$key_decisions"$'\n'
-        fi
-        if [[ -n "$lessons" ]]; then
-          _ctx+=""$'\n'
-          _ctx+="### Lessons"$'\n'
-          _ctx+=""$'\n'
-          _ctx+="$lessons"$'\n'
-        fi
-      fi
-    done <<< "$journal_files"
-  fi
-fi
-
 # --- Auto memory note ---
 _ctx+=""$'\n'
 _ctx+="---"$'\n'

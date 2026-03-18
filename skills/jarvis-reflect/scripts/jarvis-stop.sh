@@ -70,10 +70,10 @@ fi
 # --- Check for this session's pending marker ---
 if [[ -n "$SESSION_ID" && -f "$JARVIS_DIR/.pending-$SESSION_ID" ]]; then
   # This session hasn't reflected yet → block
-  REASON="Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session."
+  REASON="Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session. (session_id: $SESSION_ID)"
   if command -v jq &>/dev/null; then
     jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
   else
-    echo '{"decision":"block","reason":"Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session."}'
+    printf '{"decision":"block","reason":"Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session. (session_id: %s)"}\n' "$SESSION_ID"
   fi
 fi
