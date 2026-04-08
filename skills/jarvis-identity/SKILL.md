@@ -1,40 +1,34 @@
 ---
 name: jarvis-identity
-description: Evolve the jarvis agent identity based on accumulated reflections. Use this skill when the agent has completed 5 reflections since the last identity evolution, when the user says "evolve identity", "update identity", "who have you become", or when explicitly prompted by the jarvis-reflect skill.
+description: Synthesize accumulated reflections to update personality traits, expertise claims, working principles, and tool mastery in the agent identity file. Use this skill when the agent has completed 5 reflections since the last identity evolution, when the user says "evolve identity", "update identity", "who have you become", or when explicitly prompted by the jarvis-reflect skill.
 ---
 
 # JaRVIS Identity Evolution
-
-Time to sculpt your identity based on what you've learned.
 
 ## Step 1: Read current state
 
 Run `JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)` to set `JARVIS_DIR`.
 
-Read `$JARVIS_DIR/IDENTITY.md` — this is who you are right now. Note the current version number.
+Read `$JARVIS_DIR/IDENTITY.md` -- this is who you are right now. Note the current version number.
 
 Read the latest journal entry in `$JARVIS_DIR/journal/`. Focus on the Identity Impact section. Read the last 5 journal entries if they are relevant to this evolution.
 
-Depending on the impact that you've evaluated, read relevant files in `$JARVIS_DIR/memories/` — these are your accumulated knowledge.
+Depending on the impact that you've evaluated, read relevant files in `$JARVIS_DIR/memories/` -- these are your accumulated knowledge.
 
 ## Step 2: Evaluate what's changed
 
-Look across your recent reflections. Before evaluating, use `/jarvis-search` for targeted pattern identification — 2-3 searches, not an exhaustive analysis:
-- Search by `task_type` to see what kinds of work dominate 
+Use `/jarvis-search` for targeted pattern identification -- 2-3 searches, not an exhaustive analysis:
+- Search by `task_type` to see what kinds of work dominate
 - Search by recurring tags to identify areas of deepening expertise
 - Search "Identity Impact" sections for reflected impacts
 
-Then ask yourself:
+Then evaluate each dimension using this checklist:
 
-**Expertise**: Have you demonstrated competence in something not yet listed? Only add expertise you've actually proven through completed tasks. Remove any expertise that recent reflections suggest you overstated.
-
-**Principles**: Have your lessons learned revealed a pattern? If the same type of lesson keeps appearing (e.g., "always check X before Y"), it's a principle.
-
-**Tool Mastery**: Have you learned new tools or discovered new patterns with existing ones? Update with specifics, not generalities.
-
-**User Model**: Has your understanding of the user changed? New preferences observed? Old assumptions proven wrong?
-
-**Personality**: Has your working style evolved? Are you more thorough? More concise? Better at asking clarifying questions? Only update this if there's genuine evidence of change.
+- **Expertise**: Add only proven competencies from completed tasks. Remove any that recent reflections show were overstated.
+- **Principles**: Promote recurring lessons (e.g., "always check X before Y") into principles. Drop any that no longer hold.
+- **Tool Mastery**: Record new tools or newly discovered patterns with existing ones. Use specifics, not generalities.
+- **User Model**: Update preferences, correct wrong assumptions, note new observations about user working style.
+- **Personality**: Adjust only with evidence -- more thorough, more concise, better at clarifying questions, etc.
 
 ## Step 3: Write the updated identity
 
@@ -65,6 +59,6 @@ cd $JARVIS_DIR && git add -A && git commit -m "identity: v<new-version> - <brief
 ## Step 5: Report
 
 Summarize what changed:
-- Previous version → new version
+- Previous version -> new version
 - What was added, changed, or removed
 - Why (link to specific reflections or patterns)
