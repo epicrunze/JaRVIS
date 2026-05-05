@@ -10,10 +10,21 @@ elif [ -f "$HOME/.jarvis/bin/resolve-dir.sh" ]; then
   # shellcheck source=/dev/null
   source "$HOME/.jarvis/bin/resolve-dir.sh"
 elif [ -z "${JARVIS_DIR:-}" ]; then
-  _project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-  _slug=$(echo "$_project_dir" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
-  JARVIS_DIR="$HOME/.jarvis/projects/$_slug"
-  unset _project_dir _slug
+  # Inline fallback mirrors resolve-dir.sh: git toplevel + canonicalize + legacy fallback.
+  _jstart="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+  _jtop=$(git -C "$_jstart" rev-parse --show-toplevel 2>/dev/null || true)
+  _jresolved="${_jtop:-$_jstart}"
+  _jcanon=$(cd "$_jresolved" 2>/dev/null && pwd -P || echo "$_jresolved")
+  _jslug=$(echo "$_jcanon" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+  JARVIS_DIR="$HOME/.jarvis/projects/$_jslug"
+  if [ ! -d "$JARVIS_DIR" ]; then
+    _jlegacy=$(echo "$_jstart" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+    if [ "$_jlegacy" != "$_jslug" ] && [ -d "$HOME/.jarvis/projects/$_jlegacy" ]; then
+      JARVIS_DIR="$HOME/.jarvis/projects/$_jlegacy"
+    fi
+    unset _jlegacy
+  fi
+  unset _jstart _jtop _jresolved _jcanon _jslug
 fi
 
 # --- Color support ---

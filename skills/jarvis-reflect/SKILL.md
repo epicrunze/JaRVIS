@@ -104,35 +104,34 @@ Read each memory file. If any file has more than 100 lines, consolidate it:
 
 This is the "sculpting" — you're not just adding, you're shaping.
 
-## Step 6: Validate your work
+## Step 6: Finalize
 
-Invoke `/jarvis-validate` to check that the journal entry you just wrote and any memory files you updated are well-formed. If there are failures, fix them before proceeding. Don't report validation details to the user unless something failed.
-
-## Step 7: Commit to version history
-
-Auto-commit the new journal entry and any memory updates to the data directory's git repo:
+Run the finalize script:
 
 ```bash
-cd $JARVIS_DIR && git add -A && git commit -m "reflect: <brief-task-summary>"
+bash <skill-path>/scripts/finalize-reflection.sh "$JARVIS_DIR/journal/<your-entry-filename>.md"
 ```
 
-Use a short summary from the Task Summary section as the commit message.
+This is one call that does the deterministic tail of the workflow: validates the data dir, removes the pending-reflection marker, commits the journal + memory updates with a message extracted from your Task Summary, and prints a structured summary. The order is fixed by the script — no chance of staging the marker into the commit.
 
-Clear your session's pending-reflection marker so the stop hook knows you've reflected:
+If validation fails, the script exits non-zero and prints the validator output. Fix the failures (usually a missing required section in the journal), then re-run the finalize call.
 
-```bash
-rm -f $JARVIS_DIR/.pending-*
+On success, the script prints something like:
+
+```
+FINALIZE_OK
+journal_entries=42
+evolution_due=false
+commit_summary=Added cursor pagination to GET /users
+consolidation_warn=preferences.md:154
 ```
 
-## Step 8: Check if identity evolution is due
+Act on the output:
 
-Read back on your Identity Impact section in your journal entry. There are two conditions to evolve your identity, if either of them are met, then invoke `/jarvis-identity` to evolve your identity. 
-
-1.  Did you have a surprising experience or are there important ideas to note in your identity? If so, it's time to evolve your identity.
-
-2.  Count the journal entries in `$JARVIS_DIR/journal/`. If the count is a multiple of 5, it's time to evolve your identity.
-
-If it's not time yet, report how many reflections until the next evolution.
+- **`evolution_due=true`** — invoke `/jarvis-identity` to evolve your identity (count-based trigger; multiple of 5 reflections).
+- **Identity Impact noted a surprising shift / new competence / new principle** — invoke `/jarvis-identity` regardless of count. The script can't judge this; you do.
+- **`consolidation_warn=` lines** — a memory file is over 100 lines. If you didn't address it in Step 5, fold the consolidation into your next reflection.
+- **No evolution due, no warns** — report what was done and how many reflections until the next evolution (`5 - (journal_entries % 5)`).
 
 ## Output
 

@@ -809,6 +809,202 @@ assert_contains "Template has version 0.0" "$identity_content" "0.0"
 growth_content=$(cat "$template_dir/GROWTH.md")
 assert_contains "Template has Growth Log table" "$growth_content" "| Date | Version |"
 
+# Test 8: Init creates .gitignore with .pending-* pattern
+assert_file_exists "Scaffold creates .gitignore" "$template_dir/.gitignore"
+gitignore_content=$(cat "$template_dir/.gitignore")
+assert_contains ".gitignore has .pending-* pattern" "$gitignore_content" ".pending-\*"
+
+# Test 9: .gitignore is in initial commit
+git_files=$(cd "$template_dir" && git ls-files)
+assert_contains ".gitignore is tracked in git" "$git_files" ".gitignore"
+
+# ============================================================
+# Group 7b: Canonicalization (symlinks, subdirs, legacy fallback)
+# ============================================================
+group "Path canonicalization"
+
+# Test 1: Symlinked path produces same slug as canonical path
+test_dir="$TEST_ROOT/canon1"
+mkdir -p "$test_dir/real-project"
+ln -s "$test_dir/real-project" "$test_dir/sym-project"
+real_slug=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="$test_dir/real-project" HOME="$TEST_ROOT/canon1home" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"')
+sym_slug=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="$test_dir/sym-project" HOME="$TEST_ROOT/canon1home" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"')
+assert_equals "Symlink and real path → same slug" "$sym_slug" "$real_slug"
+
+# Test 2: Subdirectory of git repo walks up to toplevel
+test_dir="$TEST_ROOT/canon2"
+mkdir -p "$test_dir/repo/sub/deeper"
+( cd "$test_dir/repo" && git init -q && git -c user.email=t@t -c user.name=t commit -q --allow-empty -m init )
+top_slug=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="$test_dir/repo" HOME="$TEST_ROOT/canon2home" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"')
+sub_slug=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="$test_dir/repo/sub/deeper" HOME="$TEST_ROOT/canon2home" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"')
+assert_equals "Subdir of git repo → same slug as toplevel" "$sub_slug" "$top_slug"
+
+# Test 3: Non-git, non-existent path stays as-is (no canonicalization possible)
+slug=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="/nonexistent/Path/Test" HOME="$TEST_ROOT/canon3home" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"')
+assert_contains "Non-existent path → falls back to slug of input" "$slug" "nonexistent-path-test"
+
+# Test 4: Legacy slug fallback — pre-existing data dir at uncanonicalized slug
+test_dir="$TEST_ROOT/canon4"
+mkdir -p "$test_dir/real-project"
+ln -s "$test_dir/real-project" "$test_dir/sym-project"
+fake_home="$TEST_ROOT/canon4home"
+# Seed a data dir using the legacy slug (uncanonicalized symlink path)
+legacy_slug=$(echo "$test_dir/sym-project" | sed 's|^/||' | tr ' /' '--' | tr '[:upper:]' '[:lower:]')
+mkdir -p "$fake_home/.jarvis/projects/$legacy_slug"
+# Resolve from the symlink path — should pick the legacy dir, not the canonical one
+resolved=$(unset JARVIS_DIR; CLAUDE_PROJECT_DIR="$test_dir/sym-project" HOME="$fake_home" bash -c 'source '"$RESOLVE_DIR"'; echo "$JARVIS_DIR"' 2>/dev/null)
+assert_equals "Legacy slug dir exists → resolver uses it over canonical" "$resolved" "$fake_home/.jarvis/projects/$legacy_slug"
+
+# Test 5: All 7 resolve-dir.sh copies are byte-identical
+unique_hashes=$(md5sum "$SCRIPT_DIR/skills"/*/scripts/resolve-dir.sh | awk '{print $1}' | sort -u | wc -l)
+assert_equals "All 7 resolve-dir.sh copies byte-identical" "$unique_hashes" "1"
+
+# ============================================================
+# Group 7c: finalize-reflection.sh
+# ============================================================
+group "finalize-reflection.sh"
+
+FINALIZE="$SCRIPT_DIR/skills/jarvis-reflect/scripts/finalize-reflection.sh"
+
+# Helper: write a valid journal entry that passes validation.
+write_valid_journal() {
+  local jdir="$1" filename="$2" summary="$3"
+  cat > "$jdir/journal/$filename" << EOF
+---
+date: 2026-05-05
+time: 12:00
+tags: [test, finalize]
+task_type: feature
+---
+
+# Reflection
+
+## Task Summary
+$summary
+
+## Actions Taken
+- Did stuff
+
+## What Worked
+- It worked
+
+## What Didn't Work
+- Nothing notable
+
+## Lessons Learned
+- Tested
+
+## Memory Updates
+None.
+
+## Identity Impact
+None.
+EOF
+}
+
+# Test 1: Happy path — pending marker removed, commit created with extracted summary, summary printed
+test_dir="$TEST_ROOT/fin1"
+fake_home="$TEST_ROOT/fin1home"
+mkdir -p "$fake_home"
+unset JARVIS_DIR
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin1/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
+jdir="$fake_home/.jarvis/projects/fin1-proj"
+touch "$jdir/.pending-fin1-session"
+write_valid_journal "$jdir" "2026-05-05-12-00-aabbccdd.md" "Tested finalize happy path"
+output=$(HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin1/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-12-00-aabbccdd.md" 2>&1)
+rc=$?
+assert_exit_code "Happy path → exit 0" "$rc" 0
+assert_contains "Happy path → FINALIZE_OK" "$output" "FINALIZE_OK"
+assert_contains "Happy path → commit_summary extracted" "$output" "commit_summary=Tested finalize happy path"
+assert_contains "Happy path → journal_entries=1" "$output" "journal_entries=1"
+assert_contains "Happy path → evolution_due=false" "$output" "evolution_due=false"
+assert_file_not_exists "Pending marker removed" "$jdir/.pending-fin1-session"
+last_msg=$(cd "$jdir" && git log -1 --format=%s)
+assert_contains "Commit message uses extracted summary" "$last_msg" "reflect: Tested finalize happy path"
+last_files=$(cd "$jdir" && git log -1 --name-only --format=)
+assert_not_contains "Pending marker NOT in last commit" "$last_files" ".pending-"
+
+# Test 2: Validation failure — finalize exits non-zero, no commit
+test_dir="$TEST_ROOT/fin2"
+fake_home="$TEST_ROOT/fin2home"
+mkdir -p "$fake_home"
+unset JARVIS_DIR
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin2/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
+jdir="$fake_home/.jarvis/projects/fin2-proj"
+# Bad journal: missing required sections
+cat > "$jdir/journal/2026-05-05-13-00-baadbaad.md" << 'EOF'
+no frontmatter
+
+## Task Summary
+broken
+EOF
+output=$(HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin2/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-13-00-baadbaad.md" 2>&1)
+rc=$?
+assert_exit_code "Bad journal → finalize exits non-zero" "$rc" 1
+assert_contains "Bad journal → 'validation failed' message" "$output" "validation failed"
+last_msg=$(cd "$jdir" && git log -1 --format=%s)
+assert_equals "Bad journal → no new commit (still on initial scaffold)" "$last_msg" "jarvis: initial scaffold"
+
+# Test 3: 5 journals → evolution_due=true
+test_dir="$TEST_ROOT/fin3"
+fake_home="$TEST_ROOT/fin3home"
+mkdir -p "$fake_home"
+unset JARVIS_DIR
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin3/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
+jdir="$fake_home/.jarvis/projects/fin3-proj"
+for i in 1 2 3 4 5; do
+  write_valid_journal "$jdir" "2026-05-05-14-0${i}-deadbeef.md" "Batch $i"
+done
+output=$(HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin3/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-14-05-deadbeef.md" 2>&1)
+assert_contains "5 journals → evolution_due=true" "$output" "evolution_due=true"
+assert_contains "5 journals → journal_entries=5" "$output" "journal_entries=5"
+
+# Test 4: Consolidation warning when memory > 100 lines
+test_dir="$TEST_ROOT/fin4"
+fake_home="$TEST_ROOT/fin4home"
+mkdir -p "$fake_home"
+unset JARVIS_DIR
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin4/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
+jdir="$fake_home/.jarvis/projects/fin4-proj"
+# Inflate preferences.md
+{
+  echo "# User Preferences"
+  echo ""
+  echo "## Consolidated"
+  for i in $(seq 1 150); do echo "- Pref $i"; done
+  echo "## Recent"
+} > "$jdir/memories/preferences.md"
+write_valid_journal "$jdir" "2026-05-05-15-00-cafef00d.md" "Trigger warn"
+output=$(HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin4/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-15-00-cafef00d.md" 2>&1)
+assert_contains "Memory > 100 lines → consolidation_warn line" "$output" "consolidation_warn=preferences.md:"
+
+# Test 5: Self-heal — missing .gitignore is recreated by finalize
+test_dir="$TEST_ROOT/fin5"
+fake_home="$TEST_ROOT/fin5home"
+mkdir -p "$fake_home"
+unset JARVIS_DIR
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin5/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
+jdir="$fake_home/.jarvis/projects/fin5-proj"
+rm -f "$jdir/.gitignore"
+write_valid_journal "$jdir" "2026-05-05-16-00-feeddead.md" "Self-heal test"
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin5/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-16-00-feeddead.md" >/dev/null 2>&1
+assert_file_exists "Self-heal → .gitignore recreated" "$jdir/.gitignore"
+gitignore_content=$(cat "$jdir/.gitignore")
+assert_contains "Self-heal → contains .pending-* pattern" "$gitignore_content" ".pending-\*"
+
+# Test 6: JARVIS_SESSION_ID limits cleanup to that session's marker
+test_dir="$TEST_ROOT/fin6"
+fake_home="$TEST_ROOT/fin6home"
+mkdir -p "$fake_home"
+unset JARVIS_DIR
+HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin6/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
+jdir="$fake_home/.jarvis/projects/fin6-proj"
+touch "$jdir/.pending-mine" "$jdir/.pending-other"
+write_valid_journal "$jdir" "2026-05-05-17-00-12345678.md" "Targeted cleanup"
+JARVIS_SESSION_ID=mine HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin6/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-17-00-12345678.md" >/dev/null 2>&1
+assert_file_not_exists "Mine marker removed" "$jdir/.pending-mine"
+assert_file_exists "Other session's marker preserved" "$jdir/.pending-other"
+
 # ============================================================
 # Group 8: jarvis-session-start-cursor.sh
 # ============================================================

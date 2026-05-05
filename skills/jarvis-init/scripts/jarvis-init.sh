@@ -134,6 +134,24 @@ No consolidated decisions yet.
 EOF
 fi
 
+# --- .gitignore ---
+# Keeps per-session pending markers (and OS/editor noise) out of the repo.
+if [[ ! -f "$JARVIS_DIR/.gitignore" ]]; then
+  cat > "$JARVIS_DIR/.gitignore" << 'EOF'
+# JaRVIS state
+.pending-*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+EOF
+fi
+
 # --- Git init + initial commit ---
 cd "$JARVIS_DIR"
 git init --quiet

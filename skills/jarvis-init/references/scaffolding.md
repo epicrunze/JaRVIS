@@ -68,3 +68,21 @@ No consolidated decisions yet.
 
 ## Recent
 ```
+
+## .gitignore
+
+Keeps per-session pending markers and common OS/editor noise out of the data-dir repo. `.pending-*` files are session markers created by the SessionStart hook; they should never be committed.
+
+```gitignore
+# JaRVIS state
+.pending-*
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
+```
