@@ -42,25 +42,20 @@ if [ ! -d "$JARVIS_DIR" ]; then
   exit 2
 fi
 
-# --- 2. Self-heal .gitignore ---
-# Covers data dirs initialized before .gitignore was scaffolded.
-GITIGNORE="$JARVIS_DIR/.gitignore"
-if [ ! -f "$GITIGNORE" ]; then
-  cat > "$GITIGNORE" << 'EOF'
-# JaRVIS state
-.pending-*
-
-# OS / editor noise
-.DS_Store
-Thumbs.db
-*.swp
-*.swo
-*~
-.idea/
-.vscode/
-EOF
-elif ! grep -qE '^\.pending-\*' "$GITIGNORE"; then
-  printf '\n# JaRVIS state\n.pending-*\n' >> "$GITIGNORE"
+# --- 2. Run pending data-dir migrations ---
+MIGRATE_SCRIPT="$SCRIPT_DIR/../../jarvis-migrate/scripts/migrate.sh"
+if [ -f "$MIGRATE_SCRIPT" ]; then
+  if ! mig_out=$(bash "$MIGRATE_SCRIPT" "$JARVIS_DIR" 2>&1); then
+    echo "$mig_out"
+    echo "" >&2
+    echo "finalize: migration failed — fix the issue, then re-run finalize." >&2
+    exit 4
+  fi
+  if [ -n "$mig_out" ]; then
+    # Surface migration changelog to the agent so it can pass it on.
+    echo "$mig_out"
+    echo ""
+  fi
 fi
 
 # --- 3. Validate ---

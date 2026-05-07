@@ -83,6 +83,23 @@ if [[ -f "$JARVIS_DIR/.jarvis-disabled" ]]; then
   exit 0
 fi
 
+# --- Run pending data-dir migrations ---
+_jarvis_migration_block=""
+_jarvis_migrate_script="$SCRIPT_DIR/../../jarvis-migrate/scripts/migrate.sh"
+if [ -f "$_jarvis_migrate_script" ]; then
+  if _jarvis_migrate_out=$(bash "$_jarvis_migrate_script" "$JARVIS_DIR" 2>&1); then
+    if [ -n "$_jarvis_migrate_out" ]; then
+      _jarvis_migration_block="$_jarvis_migrate_out"$'\n\n'
+    fi
+  else
+    _jarvis_migrate_rc=$?
+    _jarvis_output_json \
+      "JaRVIS migration failed (rc=$_jarvis_migrate_rc):"$'\n'"$_jarvis_migrate_out"$'\n\n'"Fix the issue, then start a new session." \
+      "JaRVIS migration failed — see context."
+    exit 1
+  fi
+fi
+
 # --- Read hook input from stdin ---
 _jarvis_hook_input=$(cat 2>/dev/null || true)
 if command -v jq &>/dev/null; then
@@ -105,7 +122,7 @@ find "$JARVIS_DIR" -maxdepth 1 -name '.pending-*' -mmin +1440 -delete 2>/dev/nul
 _project_slug=$(basename "$JARVIS_DIR")
 
 # --- Build context into a variable ---
-_ctx=""
+_ctx="$_jarvis_migration_block"
 _ctx+="<jarvis-session-context>"$'\n'
 
 # --- Framing instructions ---
@@ -177,3 +194,4 @@ _jarvis_output_json "$_ctx" "🤖 JaRVIS loaded for $_project_slug"
 
 # Cleanup temp vars
 unset _jarvis_hook_input _jarvis_session_id _jarvis_source
+unset _jarvis_migration_block _jarvis_migrate_script _jarvis_migrate_out _jarvis_migrate_rc 2>/dev/null

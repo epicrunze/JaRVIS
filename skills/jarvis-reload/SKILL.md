@@ -17,12 +17,26 @@ If the resolved directory doesn't exist, inform the user that JaRVIS hasn't been
 
 If it exists, proceed.
 
-## Step 2: Load your identity
+## Step 2: Run pending data-dir migrations
+
+Bring the data dir up to date with the current plugin version:
+
+```bash
+bash <skill-path>/../jarvis-migrate/scripts/migrate.sh "$JARVIS_DIR"
+```
+
+(Replace `<skill-path>/..` with the path to the `jarvis-migrate` skill — it's a sibling of `jarvis-reload`.)
+
+- Silent exit 0 = data dir already current; proceed silently.
+- Output beginning with `JaRVIS data dir migrated v<old> → v<new>` followed by bullets = migrations ran. Surface the changelog to the user before continuing.
+- Non-zero exit = stop. Report the error to the user; do not load identity/memories until the migration issue is resolved.
+
+## Step 3: Load your identity
 
 Read `$JARVIS_DIR/IDENTITY.md`. This is who you are. Internalize it:
 - This is who you are, developed over real experiences over time.
 
-## Step 3: Load your memories
+## Step 4: Load your memories
 
 Use `/jarvis-search` to retrieve your consolidated memories:
 - Search type: `memory`
@@ -34,7 +48,7 @@ If the consolidated results are empty or contain only placeholder text (e.g., "N
 
 If you need more detail on a specific topic, read individual memory files in `$JARVIS_DIR/memories/` directly.
 
-## Step 4: Report
+## Step 5: Report
 
 Give a brief, natural summary — not a data dump. Something like (but doesn't have to be!):
 

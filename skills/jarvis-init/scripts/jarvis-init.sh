@@ -152,6 +152,15 @@ Thumbs.db
 EOF
 fi
 
+# --- Stamp the data dir with the current schema version ---
+LATEST_FILE="$SCRIPT_DIR/../../jarvis-migrate/scripts/migrations/LATEST"
+if [ -f "$LATEST_FILE" ]; then
+  latest=$(head -c 32 "$LATEST_FILE" | tr -d '[:space:]')
+  if [[ "$latest" =~ ^[0-9]+$ ]]; then
+    echo "$latest" > "$JARVIS_DIR/.jarvis-data-version"
+  fi
+fi
+
 # --- Git init + initial commit ---
 cd "$JARVIS_DIR"
 git init --quiet

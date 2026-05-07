@@ -16,6 +16,8 @@ CURSOR_SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/scripts/jarvis-session-st
 CURSOR_STOP="$SCRIPT_DIR/skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh"
 COPILOT_SESSION_START="$SCRIPT_DIR/skills/jarvis-reload/scripts/jarvis-session-start-copilot.sh"
 COPILOT_SESSION_END="$SCRIPT_DIR/skills/jarvis-reflect/scripts/jarvis-session-end-copilot.sh"
+MIGRATE="$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh"
+PLUGIN_LATEST=$(cat "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/LATEST" 2>/dev/null || echo 0)
 
 TEST_ROOT=$(mktemp -d)
 trap 'rm -rf "$TEST_ROOT"' EXIT
@@ -247,6 +249,20 @@ add_consolidated_memory() {
   mv "$tmp" "$file"
 }
 
+# Stage a fake migration into a temporary migrations dir for runner tests.
+# Args: <migrations-dir> <NNN> <stdout-line> [<exit-code>]
+make_fake_migration() {
+  local mig_dir="$1" nnn="$2" line="$3" rc="${4:-0}"
+  mkdir -p "$mig_dir"
+  cat > "$mig_dir/${nnn}-test.sh" << EOF
+#!/usr/bin/env bash
+. "\$(dirname "\$0")/_lib.sh"
+log_change "$line"
+exit $rc
+EOF
+  chmod +x "$mig_dir/${nnn}-test.sh"
+}
+
 group() {
   CURRENT_GROUP="$1"
   echo ""
@@ -270,20 +286,17 @@ scaffold_jarvis_dir "$test_dir"
 output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_contains "Fresh scaffold → 'fresh JaRVIS setup' message" "$output" "fresh JaRVIS setup"
 
-# Test 3: Populated identity + memories + 4 journals → loads identity, memories, 3 most recent
+# Test 3: Populated identity + memories → loads identity and consolidated memories
+# (Journal entries are intentionally NOT loaded by the SessionStart hook — the agent
+# consults journals via /jarvis-search on demand. This test confirms identity and
+# memory loading; journal-loading was removed from the hook.)
 test_dir="$TEST_ROOT/ss3"
 scaffold_jarvis_dir "$test_dir"
 create_populated_identity "$test_dir"
 add_consolidated_memory "$test_dir/memories/preferences.md" "- User likes dark mode"
-create_journal_entry "$test_dir" "2026-03-10-09-00" "setup" "config" "alpha"
-create_journal_entry "$test_dir" "2026-03-11-10-00" "testing" "feature" "beta"
-create_journal_entry "$test_dir" "2026-03-12-11-00" "bugfix" "bugfix" "gamma"
-create_journal_entry "$test_dir" "2026-03-13-14-00" "deploy" "feature" "delta"
 output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_contains "Loads identity (TestBot)" "$output" "TestBot"
 assert_contains "Loads memories (dark mode)" "$output" "dark mode"
-assert_contains "Loads most recent journal (delta)" "$output" "delta"
-assert_not_contains "Does NOT load 4th oldest journal (alpha)" "$output" "alpha"
 
 # Test 4: Empty memories dir
 test_dir="$TEST_ROOT/ss4"
@@ -306,6 +319,48 @@ cat > "$test_dir/memories/preferences.md" << 'EOF'
 EOF
 output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
 assert_not_contains "Empty Consolidated → not included" "$output" "Memories: preferences"
+
+# Test 6: SessionStart on unmigrated dir → context includes migration changelog
+test_dir="$TEST_ROOT/ss6"
+scaffold_jarvis_dir "$test_dir"
+# Simulate a pre-migration dir: no stamp, no .gitignore
+rm -f "$test_dir/.gitignore" "$test_dir/.jarvis-data-version"
+output=$(echo '{"session_id": "ss6"}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+rc=$?
+assert_exit_code "Unmigrated dir → hook exit 0" "$rc" 0
+assert_contains "Migration changelog in context" "$output" "migrated v0 → v1"
+assert_contains "Migration bullet in context" "$output" "001-add-gitignore"
+assert_file_exists "Migration ran .gitignore" "$test_dir/.gitignore"
+
+# Test 7: SessionStart on already-migrated dir → no migration block in context
+test_dir="$TEST_ROOT/ss7"
+scaffold_jarvis_dir "$test_dir"
+echo "$PLUGIN_LATEST" > "$test_dir/.jarvis-data-version"
+echo ".pending-*" > "$test_dir/.gitignore"
+output=$(echo '{"session_id": "ss7"}' | JARVIS_DIR="$test_dir" bash "$SESSION_START" 2>&1)
+rc=$?
+assert_exit_code "Migrated dir → hook exit 0" "$rc" 0
+assert_not_contains "No migration block in context" "$output" "migrated v"
+
+# Test 8: SessionStart with a failing migration → hook exits non-zero, error in context
+test_dir="$TEST_ROOT/ss8"
+fake_plugin="$TEST_ROOT/ss8_plugin"
+scaffold_jarvis_dir "$test_dir"
+rm -f "$test_dir/.jarvis-data-version"
+# Build a fake plugin tree that the hook resolves via SCRIPT_DIR/../../jarvis-migrate/...
+mkdir -p "$fake_plugin/skills/jarvis-reload/scripts" "$fake_plugin/skills/jarvis-migrate/scripts/migrations"
+cp "$SESSION_START" "$fake_plugin/skills/jarvis-reload/scripts/jarvis-session-start.sh"
+cp "$RESOLVE_DIR" "$fake_plugin/skills/jarvis-reload/scripts/resolve-dir.sh"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/skills/jarvis-migrate/scripts/migrate.sh"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/resolve-dir.sh" "$fake_plugin/skills/jarvis-migrate/scripts/resolve-dir.sh"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/skills/jarvis-migrate/scripts/migrations/_lib.sh"
+make_fake_migration "$fake_plugin/skills/jarvis-migrate/scripts/migrations" "001" "broken migration" 1
+echo "1" > "$fake_plugin/skills/jarvis-migrate/scripts/migrations/LATEST"
+output=$(echo '{"session_id": "ss8"}' | JARVIS_DIR="$test_dir" bash "$fake_plugin/skills/jarvis-reload/scripts/jarvis-session-start.sh" 2>&1)
+rc=$?
+assert_exit_code "Failing migration → hook exits 1" "$rc" 1
+assert_contains "Failing migration → 'migration failed' in output" "$output" "migration failed"
+assert_contains "Failing migration → migration name in output" "$output" "001-test"
 
 # ============================================================
 # Group 2: jarvis-stop.sh
@@ -335,7 +390,7 @@ touch "$test_dir/.pending-test3"
 output=$(echo '{"session_id": "test3"}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
 assert_contains "Pending marker → blocking JSON" "$output" '"decision"'
 assert_contains "Pending marker → block value" "$output" '"block"'
-assert_contains "Pending marker → has reason" "$output" "haven't reflected"
+assert_contains "Pending marker → has reason" "$output" "Reminder to reflect"
 
 # Test 4: Different session's pending marker → silent
 test_dir="$TEST_ROOT/stop4"
@@ -818,6 +873,18 @@ assert_contains ".gitignore has .pending-* pattern" "$gitignore_content" ".pendi
 git_files=$(cd "$template_dir" && git ls-files)
 assert_contains ".gitignore is tracked in git" "$git_files" ".gitignore"
 
+# Test 10: Init writes .jarvis-data-version at LATEST
+assert_file_exists "Init creates .jarvis-data-version" "$template_dir/.jarvis-data-version"
+stamp_content=$(cat "$template_dir/.jarvis-data-version")
+expected_latest=$(cat "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/LATEST")
+assert_equals "Init stamp == migrations/LATEST" "$stamp_content" "$expected_latest"
+
+# Test 11: After init, migrate.sh is a no-op
+output=$(bash "$MIGRATE" "$template_dir" 2>&1)
+rc=$?
+assert_exit_code "Post-init migrate → exit 0" "$rc" 0
+assert_equals "Post-init migrate → silent" "$output" ""
+
 # ============================================================
 # Group 7b: Canonicalization (symlinks, subdirs, legacy fallback)
 # ============================================================
@@ -978,19 +1045,21 @@ write_valid_journal "$jdir" "2026-05-05-15-00-cafef00d.md" "Trigger warn"
 output=$(HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin4/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-15-00-cafef00d.md" 2>&1)
 assert_contains "Memory > 100 lines → consolidation_warn line" "$output" "consolidation_warn=preferences.md:"
 
-# Test 5: Self-heal — missing .gitignore is recreated by finalize
+# Test 5: finalize on unmigrated dir → migrate runs first, .gitignore created via migration
 test_dir="$TEST_ROOT/fin5"
 fake_home="$TEST_ROOT/fin5home"
 mkdir -p "$fake_home"
 unset JARVIS_DIR
 HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin5/proj" bash "$JARVIS_INIT" >/dev/null 2>&1
 jdir="$fake_home/.jarvis/projects/fin5-proj"
-rm -f "$jdir/.gitignore"
+# Roll the dir back to v0 to simulate a pre-migration state
+rm -f "$jdir/.gitignore" "$jdir/.jarvis-data-version"
 write_valid_journal "$jdir" "2026-05-05-16-00-feeddead.md" "Self-heal test"
 HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin5/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-16-00-feeddead.md" >/dev/null 2>&1
-assert_file_exists "Self-heal → .gitignore recreated" "$jdir/.gitignore"
+assert_file_exists "Migration ran during finalize → .gitignore exists" "$jdir/.gitignore"
 gitignore_content=$(cat "$jdir/.gitignore")
-assert_contains "Self-heal → contains .pending-* pattern" "$gitignore_content" ".pending-\*"
+assert_contains "Migration-recreated .gitignore has .pending-*" "$gitignore_content" ".pending-\*"
+assert_equals "Stamp advanced to LATEST after finalize" "$(cat $jdir/.jarvis-data-version)" "$PLUGIN_LATEST"
 
 # Test 6: JARVIS_SESSION_ID limits cleanup to that session's marker
 test_dir="$TEST_ROOT/fin6"
@@ -1004,6 +1073,314 @@ write_valid_journal "$jdir" "2026-05-05-17-00-12345678.md" "Targeted cleanup"
 JARVIS_SESSION_ID=mine HOME="$fake_home" CLAUDE_PROJECT_DIR="/fin6/proj" bash "$FINALIZE" "$jdir/journal/2026-05-05-17-00-12345678.md" >/dev/null 2>&1
 assert_file_not_exists "Mine marker removed" "$jdir/.pending-mine"
 assert_file_exists "Other session's marker preserved" "$jdir/.pending-other"
+
+# ============================================================
+# Group 7d: jarvis-migrate runner
+# ============================================================
+group "jarvis-migrate runner"
+
+# PLUGIN_LATEST is defined at the top of this file (top-level constant).
+
+# Test 1: Up-to-date data dir (stamp == LATEST) → silent exit 0
+test_dir="$TEST_ROOT/mig1"
+scaffold_jarvis_dir "$test_dir"
+echo "$PLUGIN_LATEST" > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Up-to-date dir → exit 0" "$rc" 0
+assert_equals "Up-to-date dir → silent (no output)" "$output" ""
+
+# Test 2: Up-to-date dir, no stamp file (treated as 0) and a fake plugin with LATEST=0 → silent exit 0
+test_dir="$TEST_ROOT/mig2"
+fake_plugin="$TEST_ROOT/mig2_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+echo "0" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Absent stamp + LATEST=0 → exit 0" "$rc" 0
+assert_equals "Absent stamp + LATEST=0 → silent" "$output" ""
+
+# Test 3: Missing data dir → exit 2
+output=$(bash "$MIGRATE" "$TEST_ROOT/nonexistent-mig" 2>&1)
+rc=$?
+assert_exit_code "Missing data dir → exit 2" "$rc" 2
+assert_contains "Missing data dir → 'data dir not found' on stderr" "$output" "data dir not found"
+
+# Test 4: Stamp > LATEST (downgrade) → exit 3
+test_dir="$TEST_ROOT/mig4"
+scaffold_jarvis_dir "$test_dir"
+echo "9" > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Stamp > LATEST → exit 3" "$rc" 3
+assert_contains "Stamp > LATEST → downgrade message" "$output" "plugin was downgraded"
+# Stamp must NOT be modified by a downgrade refusal
+stamp_after=$(cat "$test_dir/.jarvis-data-version")
+assert_equals "Downgrade refusal does not touch stamp" "$stamp_after" "9"
+
+# Test 5: Garbage stamp content → treated as 0 (uses fake plugin with LATEST=0 to assert silent no-op)
+test_dir="$TEST_ROOT/mig5"
+fake_plugin="$TEST_ROOT/mig5_plugin"
+scaffold_jarvis_dir "$test_dir"
+printf 'not-an-integer' > "$test_dir/.jarvis-data-version"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+echo "0" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Garbage stamp → treated as 0, exit 0" "$rc" 0
+assert_equals "Garbage stamp → silent" "$output" ""
+
+# Test 6: One pending migration → runs it, advances stamp, prints changelog
+test_dir="$TEST_ROOT/mig6"
+fake_plugin="$TEST_ROOT/mig6_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+make_fake_migration "$fake_plugin/migrations" "001" "did the thing"
+echo "1" > "$fake_plugin/migrations/LATEST"
+fake_runner="$fake_plugin/migrate.sh"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_runner"
+output=$(bash "$fake_runner" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "One pending migration → exit 0" "$rc" 0
+assert_contains "Changelog header present" "$output" "migrated v0 → v1"
+assert_contains "Migration line aggregated" "$output" "001-test: did the thing"
+assert_equals "Stamp advanced to LATEST" "$(cat $test_dir/.jarvis-data-version)" "1"
+
+# Test 7: Failing migration → exit 4, stamp NOT advanced
+test_dir="$TEST_ROOT/mig7"
+fake_plugin="$TEST_ROOT/mig7_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+make_fake_migration "$fake_plugin/migrations" "001" "should not appear" 1
+echo "1" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Failing migration → exit 4" "$rc" 4
+assert_contains "Failing migration → name in stderr" "$output" "001-test"
+assert_file_not_exists "Stamp NOT written on failure" "$test_dir/.jarvis-data-version"
+
+# Test 8: Filename gap (LATEST=2 but only 001 present) → exit 5
+test_dir="$TEST_ROOT/mig8"
+fake_plugin="$TEST_ROOT/mig8_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+make_fake_migration "$fake_plugin/migrations" "001" "first"
+echo "2" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Filename gap → exit 5" "$rc" 5
+assert_contains "Filename gap → packaging bug message" "$output" "packaging bug"
+
+# Test 9: Two pending migrations → both run, in order
+test_dir="$TEST_ROOT/mig9"
+fake_plugin="$TEST_ROOT/mig9_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+make_fake_migration "$fake_plugin/migrations" "001" "did first"
+make_fake_migration "$fake_plugin/migrations" "002" "did second"
+echo "2" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Two migrations → exit 0" "$rc" 0
+assert_contains "First migration appears" "$output" "001-test: did first"
+assert_contains "Second migration appears" "$output" "002-test: did second"
+first_pos=$(echo "$output" | grep -n "001-test" | head -1 | cut -d: -f1)
+second_pos=$(echo "$output" | grep -n "002-test" | head -1 | cut -d: -f1)
+if [ "$first_pos" -lt "$second_pos" ]; then
+  PASS_COUNT=$((PASS_COUNT + 1))
+  printf "  ${GREEN}PASS${RESET} Migrations run in filename order\n"
+else
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+  printf "  ${RED}FAIL${RESET} Migrations run in filename order (got 001 at line %s, 002 at line %s)\n" "$first_pos" "$second_pos"
+fi
+assert_equals "Stamp advanced to 2" "$(cat $test_dir/.jarvis-data-version)" "2"
+
+# Test 10: Resume from CURRENT — already at v1, only 002 should run
+test_dir="$TEST_ROOT/mig10"
+fake_plugin="$TEST_ROOT/mig10_plugin"
+scaffold_jarvis_dir "$test_dir"
+echo "1" > "$test_dir/.jarvis-data-version"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+make_fake_migration "$fake_plugin/migrations" "001" "should be skipped"
+make_fake_migration "$fake_plugin/migrations" "002" "second only"
+echo "2" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Resume → exit 0" "$rc" 0
+assert_not_contains "001 not re-run" "$output" "should be skipped"
+assert_contains "002 ran" "$output" "second only"
+assert_equals "Stamp advanced to 2" "$(cat $test_dir/.jarvis-data-version)" "2"
+
+# Test 11: Real migration 001 on a fresh data dir without .gitignore
+test_dir="$TEST_ROOT/mig11"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+# No .gitignore, no stamp — simulate a pre-migration data dir
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Real 001 → exit 0" "$rc" 0
+assert_contains "Real 001 → changelog header" "$output" "migrated v0 → v1"
+assert_contains "Real 001 → 'wrote .gitignore'" "$output" "wrote .gitignore"
+assert_file_exists "Real 001 → .gitignore created" "$test_dir/.gitignore"
+gitignore_content=$(cat "$test_dir/.gitignore")
+assert_contains "Real 001 → .gitignore has .pending-*" "$gitignore_content" ".pending-\*"
+assert_equals "Real 001 → stamp at 1" "$(cat $test_dir/.jarvis-data-version)" "1"
+
+# Test 12: Re-run migration 001 — should be no-op (idempotent)
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Re-run → exit 0" "$rc" 0
+assert_equals "Re-run → silent no-op" "$output" ""
+
+# Test 13: Migration 001 against a dir with a partial .gitignore (no .pending-*)
+test_dir="$TEST_ROOT/mig13"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+echo "*.log" > "$test_dir/.gitignore"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Partial .gitignore → exit 0" "$rc" 0
+assert_contains "Partial .gitignore → 'appended .pending-*'" "$output" "appended .pending-\*"
+content=$(cat "$test_dir/.gitignore")
+assert_contains "Partial .gitignore → still has *.log" "$content" "\*.log"
+assert_contains "Partial .gitignore → now has .pending-*" "$content" ".pending-\*"
+
+# Test 14: Partial-failure recovery — first run fails at #2, fix #2, re-run; expect #1 idempotent + #2 succeeds
+test_dir="$TEST_ROOT/mig_recovery"
+fake_plugin="$TEST_ROOT/mig_recovery_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrations/_lib.sh" "$fake_plugin/migrations/_lib.sh"
+# Migration 001: idempotent counter (only writes once)
+cat > "$fake_plugin/migrations/001-counter.sh" << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+. "$(dirname "$0")/_lib.sh"
+JDIR="$1"
+if [ ! -f "$JDIR/.counter" ]; then
+  echo "1" > "$JDIR/.counter"
+  log_change "wrote counter"
+else
+  log_change "no-op (counter present)"
+fi
+EOF
+chmod +x "$fake_plugin/migrations/001-counter.sh"
+# Migration 002: fails the first time
+make_fake_migration "$fake_plugin/migrations" "002" "should not appear" 1
+echo "2" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+# First run: 001 succeeds, 002 fails
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Recovery: first run fails at 002" "$rc" 4
+assert_file_exists "Recovery: 001 effect persisted" "$test_dir/.counter"
+assert_file_not_exists "Recovery: stamp not advanced" "$test_dir/.jarvis-data-version"
+# Fix 002: replace with a working version
+make_fake_migration "$fake_plugin/migrations" "002" "now works" 0
+# Second run: 001 should be no-op (idempotent), 002 should succeed, stamp advances to 2
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Recovery: second run succeeds" "$rc" 0
+assert_contains "Recovery: 001 ran idempotent" "$output" "no-op (counter present)"
+assert_contains "Recovery: 002 ran on retry" "$output" "now works"
+assert_equals "Recovery: counter unchanged (idempotent)" "$(cat $test_dir/.counter)" "1"
+assert_equals "Recovery: stamp at LATEST" "$(cat $test_dir/.jarvis-data-version)" "2"
+
+# Test 15: Existing-user upgrade — .gitignore already current (from prior reliability pass)
+test_dir="$TEST_ROOT/mig_upgrade"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+# Pre-existing .gitignore matching what the prior reliability pass wrote
+cat > "$test_dir/.gitignore" << 'EOF'
+# JaRVIS state
+.pending-*
+
+# OS / editor noise
+.DS_Store
+EOF
+# No stamp — pre-migration-system data dir
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Upgrade: exit 0" "$rc" 0
+assert_contains "Upgrade: changelog header" "$output" "migrated v0 → v1"
+assert_contains "Upgrade: 'no-op (.gitignore already current)'" "$output" "already current"
+assert_equals "Upgrade: stamp at LATEST" "$(cat $test_dir/.jarvis-data-version)" "$PLUGIN_LATEST"
+upgrade_gitignore=$(cat "$test_dir/.gitignore")
+assert_contains "Upgrade: .gitignore preserved (.pending-*)" "$upgrade_gitignore" ".pending-\*"
+assert_contains "Upgrade: .gitignore preserved (DS_Store)" "$upgrade_gitignore" ".DS_Store"
+
+# Test 16: Migration with missing _lib.sh fails loudly
+test_dir="$TEST_ROOT/mig_no_lib"
+fake_plugin="$TEST_ROOT/mig_no_lib_plugin"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$fake_plugin/migrations"
+# Migration that sources a non-existent _lib.sh — deliberately don't copy _lib.sh
+cat > "$fake_plugin/migrations/001-broken.sh" << 'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+. "$(dirname "$0")/_lib.sh"
+log_change "should never get here"
+EOF
+chmod +x "$fake_plugin/migrations/001-broken.sh"
+echo "1" > "$fake_plugin/migrations/LATEST"
+cp "$SCRIPT_DIR/skills/jarvis-migrate/scripts/migrate.sh" "$fake_plugin/migrate.sh"
+output=$(bash "$fake_plugin/migrate.sh" "$test_dir" 2>&1)
+rc=$?
+assert_exit_code "Missing _lib.sh → exit 4" "$rc" 4
+assert_contains "Missing _lib.sh → migration name in stderr" "$output" "001-broken"
+
+# Test 17: Stamp file edge cases — parser tolerates whitespace and rejects non-integer formats
+# Each case sets a stamp value and asserts whether migrate runs to v1 (parsed-as-0) or no-ops (parsed-as-LATEST).
+# (LATEST is currently 1, so "parsed as 1" is a no-op and "parsed as 0" runs migration 001.)
+
+# 17a: Trailing newlines → parsed as 1, no-op
+test_dir="$TEST_ROOT/mig_stamp_a"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+echo ".pending-*" > "$test_dir/.gitignore"
+printf '1\n\n\n' > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+assert_equals "Stamp '1\\n\\n\\n' → no-op" "$output" ""
+
+# 17b: Zero-padded → parsed as 1, no-op
+test_dir="$TEST_ROOT/mig_stamp_b"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+echo ".pending-*" > "$test_dir/.gitignore"
+printf '01' > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+assert_equals "Stamp '01' → parsed as 1, no-op" "$output" ""
+
+# 17c: Surrounded whitespace → parsed as 1, no-op
+test_dir="$TEST_ROOT/mig_stamp_c"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+echo ".pending-*" > "$test_dir/.gitignore"
+printf '  1  \n' > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+assert_equals "Stamp '  1  ' → parsed as 1, no-op" "$output" ""
+
+# 17d: Negative → fails regex, treated as 0, runs migration
+test_dir="$TEST_ROOT/mig_stamp_d"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+printf '%s' '-1' > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+assert_contains "Stamp '-1' → treated as 0, runs migration" "$output" "migrated v0 → v1"
+
+# 17e: Decimal → fails regex, treated as 0, runs migration
+test_dir="$TEST_ROOT/mig_stamp_e"
+mkdir -p "$test_dir/memories" "$test_dir/journal"
+printf '%s' '1.5' > "$test_dir/.jarvis-data-version"
+output=$(bash "$MIGRATE" "$test_dir" 2>&1)
+assert_contains "Stamp '1.5' → treated as 0, runs migration" "$output" "migrated v0 → v1"
 
 # ============================================================
 # Group 8: jarvis-session-start-cursor.sh
@@ -1031,6 +1408,15 @@ test_dir="$TEST_ROOT/cursor_ss2"
 mkdir -p "$test_dir"
 output=$(echo '{"conversation_id": "cursor-456"}' | JARVIS_DIR="$test_dir/nonexistent" bash "$CURSOR_SESSION_START" 2>&1)
 assert_contains "No data dir → 'not set up' message" "$output" "not set up"
+
+# Test 5: Cursor wrapper propagates migration changelog into agent_message
+test_dir="$TEST_ROOT/cursor_mig"
+scaffold_jarvis_dir "$test_dir"
+rm -f "$test_dir/.gitignore" "$test_dir/.jarvis-data-version"
+output=$(echo '{"conversation_id": "cursor-mig"}' | JARVIS_DIR="$test_dir" bash "$CURSOR_SESSION_START" 2>&1)
+assert_contains "Cursor: migration changelog in agent_message" "$output" "migrated v0 → v1"
+assert_contains "Cursor: 001-add-gitignore in agent_message" "$output" "001-add-gitignore"
+assert_file_exists "Cursor: migration ran .gitignore" "$test_dir/.gitignore"
 
 # ============================================================
 # Group 9: jarvis-stop-cursor.sh
@@ -1095,6 +1481,16 @@ else
   printf "  ${RED}FAIL${RESET} Missing timestamp → fallback marker created\n"
   printf "       no .pending-copilot-* marker found\n"
 fi
+
+# Test 5: Copilot wrapper runs migrations as a side effect (output is empty {})
+test_dir="$TEST_ROOT/copilot_mig"
+scaffold_jarvis_dir "$test_dir"
+rm -f "$test_dir/.gitignore" "$test_dir/.jarvis-data-version"
+output=$(echo '{"timestamp": 1000000}' | JARVIS_DIR="$test_dir" bash "$COPILOT_SESSION_START" 2>&1)
+assert_equals "Copilot: output is {}" "$(echo "$output" | tr -d '[:space:]')" "{}"
+assert_file_exists "Copilot: migration advanced stamp" "$test_dir/.jarvis-data-version"
+assert_equals "Copilot: stamp at LATEST" "$(cat $test_dir/.jarvis-data-version)" "$PLUGIN_LATEST"
+assert_file_exists "Copilot: migration created .gitignore" "$test_dir/.gitignore"
 
 # ============================================================
 # Group 11: jarvis-session-end-copilot.sh
