@@ -71,20 +71,35 @@ if [[ -f "$JARVIS_DIR/.jarvis-disabled" ]]; then
   exit 0
 fi
 
-# --- Read session_id from stdin ---
-SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
-# fallback without jq
-if [[ -z "$SESSION_ID" ]]; then
+# --- Read session_id and transcript_path from stdin ---
+if command -v jq &>/dev/null; then
+  SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+  TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+else
   SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+  TRANSCRIPT_PATH=$(echo "$INPUT" | grep -o '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
 fi
 
-# --- Check for this session's pending marker ---
-if [[ -n "$SESSION_ID" && -f "$JARVIS_DIR/.pending-$SESSION_ID" ]]; then
-  # This session hasn't reflected yet → block
-  REASON="Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session. (session_id: $SESSION_ID)"
-  if command -v jq &>/dev/null; then
-    jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
-  else
-    printf '{"decision":"block","reason":"Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session. (session_id: %s)"}\n' "$SESSION_ID"
-  fi
+# --- Bail if no session-pending marker ---
+MARKER="$JARVIS_DIR/.pending-$SESSION_ID"
+if [[ -z "$SESSION_ID" || ! -f "$MARKER" ]]; then
+  exit 0
+fi
+
+# --- Heuristic gate: decide whether the reminder is warranted ---
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+export TRANSCRIPT_PATH MARKER PROJECT_DIR
+# shellcheck source=stop-gate.sh
+source "$SCRIPT_DIR/stop-gate.sh"
+verdict=$(gate_verdict)
+if [[ "$verdict" != "BLOCK" ]]; then
+  exit 0
+fi
+
+# --- Emit the blocking reminder ---
+REASON="Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session. (session_id: $SESSION_ID)"
+if command -v jq &>/dev/null; then
+  jq -n --arg reason "$REASON" '{decision: "block", reason: $reason}'
+else
+  printf '{"decision":"block","reason":"Reminder to reflect if needed. Run /jarvis-reflect to reflect on your session. (session_id: %s)"}\n' "$SESSION_ID"
 fi

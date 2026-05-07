@@ -16,14 +16,21 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Read Cursor's hook input from stdin
 CURSOR_INPUT=$(cat 2>/dev/null || true)
 
-# Map conversation_id → session_id for the base script.
+# Map conversation_id → session_id for the base script and forward
+# transcript_path if Cursor supplies one (most builds don't today, in which
+# case the base script's heuristic gate falls back to an age-based rule).
 # Cursor's stop hook doesn't have stop_hook_active, so omit it (defaults to false).
 if command -v jq &>/dev/null; then
-  BASE_INPUT=$(echo "$CURSOR_INPUT" | jq '{session_id: .conversation_id}' 2>/dev/null || echo '{}')
+  BASE_INPUT=$(echo "$CURSOR_INPUT" | jq '{session_id: .conversation_id, transcript_path: (.transcript_path // null)}' 2>/dev/null || echo '{}')
 else
   CONV_ID=$(echo "$CURSOR_INPUT" | grep -o '"conversation_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+  TRANSCRIPT_PATH_FWD=$(echo "$CURSOR_INPUT" | grep -o '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
   if [[ -n "$CONV_ID" ]]; then
-    BASE_INPUT="{\"session_id\":\"$CONV_ID\"}"
+    if [[ -n "$TRANSCRIPT_PATH_FWD" ]]; then
+      BASE_INPUT="{\"session_id\":\"$CONV_ID\",\"transcript_path\":\"$TRANSCRIPT_PATH_FWD\"}"
+    else
+      BASE_INPUT="{\"session_id\":\"$CONV_ID\"}"
+    fi
   else
     BASE_INPUT='{}'
   fi

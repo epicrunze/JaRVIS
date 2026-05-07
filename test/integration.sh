@@ -383,14 +383,17 @@ rc=$?
 assert_exit_code "No pending marker → exit 0" "$rc" 0
 assert_not_contains "No pending marker → silent" "$output" "block"
 
-# Test 3: Pending marker exists → blocks
+# Test 3: Aged pending marker without transcript → blocks via rule 5 (Cursor fallback)
 test_dir="$TEST_ROOT/stop3"
 scaffold_jarvis_dir "$test_dir"
 touch "$test_dir/.pending-test3"
-output=$(echo '{"session_id": "test3"}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
-assert_contains "Pending marker → blocking JSON" "$output" '"decision"'
-assert_contains "Pending marker → block value" "$output" '"block"'
-assert_contains "Pending marker → has reason" "$output" "Reminder to reflect"
+# Age the marker past 5 minutes so rule 5 (no transcript + age >= 300s) fires.
+touch -d '10 minutes ago' "$test_dir/.pending-test3"
+mkdir -p "$test_dir/empty-project"
+output=$(echo '{"session_id": "test3"}' | JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_contains "Aged marker, no transcript → blocking JSON" "$output" '"decision"'
+assert_contains "Aged marker, no transcript → block value" "$output" '"block"'
+assert_contains "Aged marker, no transcript → has reason" "$output" "Reminder to reflect"
 
 # Test 4: Different session's pending marker → silent
 test_dir="$TEST_ROOT/stop4"
@@ -414,6 +417,123 @@ scaffold_jarvis_dir "$test_dir"
 touch "$test_dir/.pending-something"
 output=$(echo '{}' | JARVIS_DIR="$test_dir" bash "$STOP_HOOK" 2>&1)
 assert_not_contains "No session_id → silent" "$output" "block"
+
+# --- Helper for transcript fixtures (used by gate tests below) ---
+make_transcript() {
+  local path="$1"; shift
+  : > "$path"
+  for line in "$@"; do printf '%s\n' "$line" >> "$path"; done
+}
+
+# Test 7: Rule 1 — last message is a question, no mutating tool calls → SKIP
+test_dir="$TEST_ROOT/stop7"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-q1"
+touch -d '10 minutes ago' "$test_dir/.pending-q1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Should I use option A or B?"}]}}'
+output=$(echo "{\"session_id\":\"q1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Rule 1: question + no tools → silent" "$output" "block"
+
+# Test 8: Rule 1 with markdown bold around the question → still SKIP
+test_dir="$TEST_ROOT/stop8"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-q2"
+touch -d '10 minutes ago' "$test_dir/.pending-q2"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"**Continue?**"}]}}'
+output=$(echo "{\"session_id\":\"q2\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Rule 1: bold question → silent" "$output" "block"
+
+# Test 9: Rule 2 — mutating Edit tool overrides trailing question → BLOCK
+test_dir="$TEST_ROOT/stop9"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-edit1"
+touch -d '10 minutes ago' "$test_dir/.pending-edit1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Done?"},{"type":"tool_use","name":"Edit","input":{}}]}}'
+output=$(echo "{\"session_id\":\"edit1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_contains "Rule 2: Edit tool → block" "$output" '"block"'
+
+# Test 10: Rule 3 — file modified since marker mtime → BLOCK (no transcript)
+test_dir="$TEST_ROOT/stop10"
+scaffold_jarvis_dir "$test_dir"
+mkdir -p "$test_dir/proj"
+touch "$test_dir/.pending-fs1"
+touch -d '2 hours ago' "$test_dir/.pending-fs1"
+echo "x" > "$test_dir/proj/somefile.txt"
+output=$(echo '{"session_id":"fs1"}' | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/proj" bash "$STOP_HOOK" 2>&1)
+assert_contains "Rule 3: file modified after marker → block" "$output" '"block"'
+
+# Test 11: Rule 4 — 5 read-only tool calls → BLOCK
+test_dir="$TEST_ROOT/stop11"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-r1"
+touch -d '10 minutes ago' "$test_dir/.pending-r1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}' \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}' \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}' \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}' \
+  '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}'
+output=$(echo "{\"session_id\":\"r1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_contains "Rule 4: 5 read-only tools → block" "$output" '"block"'
+
+# Test 12: Rule 5 — no transcript, marker aged > 5 min → BLOCK (Cursor fallback)
+test_dir="$TEST_ROOT/stop12"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-age1"
+touch -d '10 minutes ago' "$test_dir/.pending-age1"
+mkdir -p "$test_dir/empty-project"
+output=$(echo '{"session_id":"age1"}' | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_contains "Rule 5: no transcript + old marker → block" "$output" '"block"'
+
+# Test 13: Rule 6 — fresh marker, no transcript → SKIP (young session)
+test_dir="$TEST_ROOT/stop13"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-young1"
+mkdir -p "$test_dir/empty-project"
+output=$(echo '{"session_id":"young1"}' | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Rule 6: fresh marker → silent" "$output" "block"
+
+# Test 14: Unhappy path — transcript_path points to a missing file → falls through gracefully
+test_dir="$TEST_ROOT/stop14"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-miss1"
+mkdir -p "$test_dir/empty-project"
+output=$(echo '{"session_id":"miss1","transcript_path":"/nonexistent/transcript.jsonl"}' | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+rc=$?
+assert_exit_code "Missing transcript → exit 0 (no crash)" "$rc" 0
+assert_not_contains "Missing transcript + fresh marker → silent" "$output" "block"
+
+# Test 15: Unhappy path — malformed transcript → SKIP (parse fails, falls through)
+test_dir="$TEST_ROOT/stop15"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-bad1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+printf 'not-json\n{"type":"assistant"\nbroken\n' > "$tx"
+output=$(echo "{\"session_id\":\"bad1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+rc=$?
+assert_exit_code "Malformed transcript → exit 0 (no crash)" "$rc" 0
+assert_not_contains "Malformed transcript + fresh marker → silent" "$output" "block"
 
 # ============================================================
 # Group 3: validate.sh
@@ -1423,13 +1543,15 @@ assert_file_exists "Cursor: migration ran .gitignore" "$test_dir/.gitignore"
 # ============================================================
 group "jarvis-stop-cursor.sh"
 
-# Test 1: Pending marker exists → output has agent_message with blocking reason
+# Test 1: Aged pending marker → output has agent_message with blocking reason (rule 5 fallback)
 test_dir="$TEST_ROOT/cursor_stop1"
 scaffold_jarvis_dir "$test_dir"
 touch "$test_dir/.pending-cursor-456"
-output=$(echo '{"conversation_id": "cursor-456"}' | JARVIS_DIR="$test_dir" bash "$CURSOR_STOP" 2>&1)
-assert_contains "Pending marker → has agent_message" "$output" '"agent_message"'
-assert_contains "Pending marker → has reflect reminder" "$output" "reflect"
+touch -d '10 minutes ago' "$test_dir/.pending-cursor-456"
+mkdir -p "$test_dir/empty-project"
+output=$(echo '{"conversation_id": "cursor-456"}' | JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$CURSOR_STOP" 2>&1)
+assert_contains "Aged marker → has agent_message" "$output" '"agent_message"'
+assert_contains "Aged marker → has reflect reminder" "$output" "reflect"
 
 # Test 2: No pending marker → empty/silent JSON
 test_dir="$TEST_ROOT/cursor_stop2"
