@@ -1,0 +1,31 @@
+name: Version sync
+
+on:
+  pull_request:
+    paths:
+      - '.claude-plugin/plugin.json'
+      - '.claude-plugin/marketplace.json'
+      - '.github/workflows/version-sync.yml'
+  push:
+    branches: [main]
+    paths:
+      - '.claude-plugin/plugin.json'
+      - '.claude-plugin/marketplace.json'
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Versions in sync
+        run: |
+          set -euo pipefail
+          plugin=$(jq -r '.version' .claude-plugin/plugin.json)
+          market=$(jq -r '.plugins[0].version' .claude-plugin/marketplace.json)
+          if [[ "$plugin" != "$market" ]]; then
+            echo "::error::Version mismatch: plugin.json=$plugin marketplace.json=$market"
+            echo "Bump both with scripts/release.sh."
+            exit 1
+          fi
+          echo "Versions in sync: $plugin"
