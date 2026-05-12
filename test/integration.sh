@@ -451,7 +451,7 @@ output=$(echo "{\"session_id\":\"q2\",\"transcript_path\":\"$tx\"}" | \
   JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
 assert_not_contains "Rule 1: bold question → silent" "$output" "block"
 
-# Test 9: Rule 2 — mutating Edit tool overrides trailing question → BLOCK
+# Test 9: Rule 1 takes precedence over Rule 2 — trailing question + Edit → SKIP
 test_dir="$TEST_ROOT/stop9"
 scaffold_jarvis_dir "$test_dir"
 touch "$test_dir/.pending-edit1"
@@ -462,7 +462,20 @@ make_transcript "$tx" \
   '{"type":"assistant","message":{"content":[{"type":"text","text":"Done?"},{"type":"tool_use","name":"Edit","input":{}}]}}'
 output=$(echo "{\"session_id\":\"edit1\",\"transcript_path\":\"$tx\"}" | \
   JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
-assert_contains "Rule 2: Edit tool → block" "$output" '"block"'
+assert_not_contains "Rule 1 precedence: question wins over Edit → silent" "$output" "block"
+
+# Test 9b: Rule 2 — Edit tool with no question in last paragraph → BLOCK
+test_dir="$TEST_ROOT/stop9b"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-edit2"
+touch -d '10 minutes ago' "$test_dir/.pending-edit2"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Done."},{"type":"tool_use","name":"Edit","input":{}}]}}'
+output=$(echo "{\"session_id\":\"edit2\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_contains "Rule 2: Edit tool, no question → block" "$output" '"block"'
 
 # Test 10: Rule 3 — file modified since marker mtime → BLOCK (no transcript)
 test_dir="$TEST_ROOT/stop10"
@@ -475,7 +488,8 @@ output=$(echo '{"session_id":"fs1"}' | \
   JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/proj" bash "$STOP_HOOK" 2>&1)
 assert_contains "Rule 3: file modified after marker → block" "$output" '"block"'
 
-# Test 11: Rule 4 — 5 read-only tool calls → BLOCK
+# Test 11: Pure-read session — 5 read-only Read calls, no question → SKIP
+# (v0.1.3 removed Rule 4 entirely; read-only exploration no longer triggers the reminder.)
 test_dir="$TEST_ROOT/stop11"
 scaffold_jarvis_dir "$test_dir"
 touch "$test_dir/.pending-r1"
@@ -490,7 +504,61 @@ make_transcript "$tx" \
   '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{}}]}}'
 output=$(echo "{\"session_id\":\"r1\",\"transcript_path\":\"$tx\"}" | \
   JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
-assert_contains "Rule 4: 5 read-only tools → block" "$output" '"block"'
+assert_not_contains "Pure-read session → silent" "$output" "block"
+
+# Test 11b: Rule 1 — '?' followed by a brief clarification tag → SKIP
+# Mirrors the dcc-launch transcript: question in penultimate sentence, period at end.
+test_dir="$TEST_ROOT/stop11b"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-tag1"
+touch -d '10 minutes ago' "$test_dir/.pending-tag1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Which VPN are we targeting? That decides between option 1 and 2."}]}}'
+output=$(echo "{\"session_id\":\"tag1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Rule 1: question + clarification tag → silent" "$output" "block"
+
+# Test 11c: Rule 1 — deferring phrase ("Let me know") with no '?' → SKIP
+test_dir="$TEST_ROOT/stop11c"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-defer1"
+touch -d '10 minutes ago' "$test_dir/.pending-defer1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Two options above. Let me know which one you prefer."}]}}'
+output=$(echo "{\"session_id\":\"defer1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Rule 1: deferring phrase → silent" "$output" "block"
+
+# Test 11d: Last-paragraph scope — '?' in an earlier paragraph does NOT save a final "Done." paragraph → BLOCK
+test_dir="$TEST_ROOT/stop11d"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-multi1"
+touch -d '10 minutes ago' "$test_dir/.pending-multi1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Why did I do this? Because Y.\n\nDone."},{"type":"tool_use","name":"Edit","input":{}}]}}'
+output=$(echo "{\"session_id\":\"multi1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_contains "Rule 1 paragraph-scope: earlier '?' does not save → block" "$output" '"block"'
+
+# Test 11e: Documented limitation — rhetorical '?' in last paragraph false-SKIPs.
+# Accepted tradeoff: bias toward silence over question-precision.
+test_dir="$TEST_ROOT/stop11e"
+scaffold_jarvis_dir "$test_dir"
+touch "$test_dir/.pending-rhet1"
+touch -d '10 minutes ago' "$test_dir/.pending-rhet1"
+mkdir -p "$test_dir/empty-project"
+tx="$test_dir/transcript.jsonl"
+make_transcript "$tx" \
+  '{"type":"assistant","message":{"content":[{"type":"text","text":"Done refactoring. Why? Because the old code was confusing."},{"type":"tool_use","name":"Edit","input":{}}]}}'
+output=$(echo "{\"session_id\":\"rhet1\",\"transcript_path\":\"$tx\"}" | \
+  JARVIS_DIR="$test_dir" CLAUDE_PROJECT_DIR="$test_dir/empty-project" bash "$STOP_HOOK" 2>&1)
+assert_not_contains "Rule 1 rhetorical-? in last paragraph → silent (accepted tradeoff)" "$output" "block"
 
 # Test 12: Rule 5 — no transcript, marker aged > 5 min → BLOCK (Cursor fallback)
 test_dir="$TEST_ROOT/stop12"

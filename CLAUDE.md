@@ -30,7 +30,7 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
 - `skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` — Cursor variant of session start hook
 - `skills/jarvis-reload/scripts/jarvis-session-start-copilot.sh` — Copilot variant of session start hook (marker tracking only)
 - `skills/jarvis-reflect/scripts/jarvis-stop.sh` — Stop hook that reminds to reflect before ending session
-- `skills/jarvis-reflect/scripts/stop-gate.sh` — Heuristic gate sourced by the stop hook; decides whether to fire the reminder based on transcript signals and working-tree state (suppresses the reminder on read-only Q&A turns)
+- `skills/jarvis-reflect/scripts/stop-gate.sh` — Heuristic gate sourced by the stop hook; decides whether to fire the reminder based on transcript signals and working-tree state. SKIPs when the last paragraph of the last assistant message contains `?` or a deferring phrase ("let me know", "your call", etc.); BLOCKs on any mutating tool call or working-tree change otherwise.
 - `skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` — Cursor variant of stop hook
 - `skills/jarvis-reflect/scripts/jarvis-session-end-copilot.sh` — Copilot session end hook (marker cleanup)
 - `skills/jarvis-init/references/CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS (Claude Code)
