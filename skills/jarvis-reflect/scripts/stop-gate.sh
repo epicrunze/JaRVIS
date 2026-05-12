@@ -13,7 +13,7 @@
 #   stdout: "BLOCK" or "SKIP"
 #
 # Decision ladder (first match wins):
-#   1. Transcript available, last assistant message ends with '?' AND no mutating tool calls → SKIP
+#   1. Transcript available, last assistant message ends with '?' → SKIP (pause for input, not session end)
 #   2. Transcript available, any mutating tool call (Edit/Write/NotebookEdit/Bash) → BLOCK
 #   3. Working tree modified since marker mtime → BLOCK
 #   4. Transcript available, >=5 total tool_use blocks → BLOCK
@@ -135,6 +135,18 @@ _jarvis_tree_modified_since() {
     | head -1 | grep -q .
 }
 
+# --- Debug trace ---
+# Set JARVIS_GATE_DEBUG=1 to log verdict + signals to stderr.
+_jarvis_gate_debug() {
+  [[ "${JARVIS_GATE_DEBUG:-}" != "1" ]] && return
+  local verdict="$1" rule="$2" age="$3"
+  local lt_tail
+  lt_tail=$(printf '%s' "${_JARVIS_GATE_LT:-}" | tail -c 80 | tr '\n' ' ')
+  printf 'jarvis-gate: verdict=%s rule=%s age=%ss ok=%s tc=%s mut=%s lt_tail=%q\n' \
+    "$verdict" "$rule" "$age" "${_JARVIS_GATE_OK:-0}" "${_JARVIS_GATE_TC:-0}" "${_JARVIS_GATE_MUT:-0}" \
+    "$lt_tail" >&2
+}
+
 # --- Main entry: echo BLOCK or SKIP ---
 gate_verdict() {
   local transcript="${TRANSCRIPT_PATH:-}"
@@ -145,44 +157,50 @@ gate_verdict() {
   age=$(_jarvis_session_age "$marker")
   _jarvis_parse_transcript "$transcript"
 
-  # Rule 1: question + no mutations (transcript-only)
-  if [[ "$_JARVIS_GATE_OK" == "1" && "$_JARVIS_GATE_MUT" != "1" ]]; then
-    if _jarvis_ends_with_question "$_JARVIS_GATE_LT"; then
-      echo SKIP
-      return
-    fi
+  # Rule 1: last assistant message ends with '?' → SKIP regardless of mutations.
+  # A trailing '?' signals a pause for user input, not session end.
+  if [[ "$_JARVIS_GATE_OK" == "1" ]] && _jarvis_ends_with_question "$_JARVIS_GATE_LT"; then
+    _jarvis_gate_debug SKIP 1 "$age"
+    echo SKIP
+    return
   fi
 
   # Rule 2: any mutating tool call (transcript-only)
   if [[ "$_JARVIS_GATE_OK" == "1" && "$_JARVIS_GATE_MUT" == "1" ]]; then
+    _jarvis_gate_debug BLOCK 2 "$age"
     echo BLOCK
     return
   fi
 
   # Rule 3: working tree modified since marker mtime
   if _jarvis_tree_modified_since "$marker" "$project_dir"; then
+    _jarvis_gate_debug BLOCK 3 "$age"
     echo BLOCK
     return
   fi
 
   # Rule 4: tool-call count threshold (transcript-only)
   if [[ "$_JARVIS_GATE_OK" == "1" && "${_JARVIS_GATE_TC:-0}" -ge 5 ]]; then
+    _jarvis_gate_debug BLOCK 4 "$age"
     echo BLOCK
     return
   fi
 
   # Rule 5: no transcript and session is old enough (Cursor/other fallback)
   if [[ "$_JARVIS_GATE_OK" != "1" && "$age" -ge 300 ]]; then
+    _jarvis_gate_debug BLOCK 5 "$age"
     echo BLOCK
     return
   fi
 
   # Rule 6: very young session
   if [[ "$age" -lt 30 ]]; then
+    _jarvis_gate_debug SKIP 6 "$age"
     echo SKIP
     return
   fi
 
   # Rule 7: default
+  _jarvis_gate_debug SKIP 7 "$age"
   echo SKIP
 }
