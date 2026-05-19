@@ -30,7 +30,7 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
 - `skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` — Cursor variant of session start hook
 - `skills/jarvis-reload/scripts/jarvis-session-start-copilot.sh` — Copilot variant of session start hook (marker tracking only)
 - `skills/jarvis-reflect/scripts/jarvis-stop.sh` — Stop hook that reminds to reflect before ending session
-- `skills/jarvis-reflect/scripts/stop-gate.sh` — Heuristic gate sourced by the stop hook; decides whether to fire the reminder based on transcript signals and working-tree state. SKIPs when the last paragraph of the last assistant message contains `?` or a deferring phrase ("let me know", "your call", etc.); BLOCKs on any mutating tool call or working-tree change otherwise.
+- `skills/jarvis-reflect/scripts/stop-gate.sh` — Heuristic gate sourced by the stop hook; decides whether to fire the reminder based on transcript signals and working-tree state. Rule 1 SKIPs when the last paragraph of the agent's final text contains `?` or a deferring phrase ("let me know", "your call", etc.). Source is the `JARVIS_LAST_ASSISTANT_MESSAGE` env var, populated by `jarvis-stop.sh` from Claude Code's `last_assistant_message` stdin field — race-free because Claude Code delivers it verbatim with the hook invocation. Falls back to transcript walk-back (most recent assistant entry containing a text content block) when the env var is empty (non-Claude-Code platforms). BLOCKs on any mutating tool call (Edit/Write/NotebookEdit/Bash) or working-tree change otherwise. Tested by `scripts/test-stop-gate.sh`.
 - `skills/jarvis-reflect/scripts/jarvis-stop-cursor.sh` — Cursor variant of stop hook
 - `skills/jarvis-reflect/scripts/jarvis-session-end-copilot.sh` — Copilot session end hook (marker cleanup)
 - `skills/jarvis-init/references/CLAUDE.md.example` — Snippet users add to their project's CLAUDE.md after installing JaRVIS (Claude Code)
@@ -71,3 +71,8 @@ Each SKILL.md uses YAML frontmatter (`name`, `description`, `disable-model-invoc
 - **Earned identity** — agent only claims expertise demonstrated through completed tasks
 - **Memory consolidation** — memories are periodically sculpted and deduplicated, not just appended
 - **Transparency** — everything is human-readable markdown, git-trackable
+
+## JaRVIS
+
+Use `/jarvis-reload` to reload context mid-session if needed.
+After completing any meaningful task, run `/jarvis-reflect` to capture what you learned.

@@ -5,21 +5,31 @@
 # (when available) and the working tree.
 #
 # Inputs (read from caller-set env):
-#   TRANSCRIPT_PATH  — path to a JSONL transcript file (Claude Code), may be empty/missing
-#   MARKER           — path to the .pending-<session-id> marker file (must exist)
-#   PROJECT_DIR      — working tree to scan for file modifications (CLAUDE_PROJECT_DIR or pwd)
+#   TRANSCRIPT_PATH               — path to a JSONL transcript file (Claude Code), may be empty/missing
+#   MARKER                        — path to the .pending-<session-id> marker file (must exist)
+#   PROJECT_DIR                   — working tree to scan for file modifications (CLAUDE_PROJECT_DIR or pwd)
+#   JARVIS_LAST_ASSISTANT_MESSAGE — agent's final text verbatim (Claude Code stdin field);
+#                                   optional, gate falls back to transcript walk-back when empty
 #
 # Output:
 #   stdout: "BLOCK" or "SKIP"
 #
 # Decision ladder (first match wins):
-#   1. Transcript available, last paragraph of last assistant message contains '?'
-#      OR matches a deferring phrase ("let me know", "your call", …) → SKIP
+#   1. Last paragraph of the agent's final text contains '?' OR a deferring
+#      phrase → SKIP. Source: $JARVIS_LAST_ASSISTANT_MESSAGE env var (passed
+#      by the Claude Code Stop hook stdin), falling back to walk-back over
+#      the transcript file if that env var is empty (other platforms).
 #   2. Transcript available, any mutating tool call (Edit/Write/NotebookEdit/Bash) → BLOCK
 #   3. Working tree modified since marker mtime → BLOCK
 #   4. Transcript missing/empty AND session age >= 300s → BLOCK (Cursor/other fallback)
 #   5. Session age < 30s → SKIP
 #   6. Default → SKIP
+#
+# Why prefer the stdin field over the transcript file: Claude Code can invoke
+# the Stop hook before the assistant's final text content is flushed to the
+# transcript JSONL. Earlier polling-based mitigations were unreliable because
+# flush latency exceeded the polling window. The stdin field is delivered
+# verbatim with the hook invocation, sidestepping the race entirely.
 #
 # All failure modes default to SKIP (bias toward silence).
 
@@ -58,13 +68,18 @@ _jarvis_last_paragraph_signals_pause() {
   printf '%s' "$last_para" | grep -iqE "$_JARVIS_DEFER_REGEX"
 }
 
-# --- Parse transcript: sets _JARVIS_GATE_{TC,MUT,LT,OK} ---
+# --- Parse transcript: sets _JARVIS_GATE_{TC,MUT,LT,LAST_CT,OK} ---
 # OK=1 if the transcript was readable and produced any signal.
+# LT is the concatenated text of the *most recent assistant entry that has at
+# least one text content block* (walk-back). LAST_CT is a JSON-array string of
+# the content-block types of the *very last* assistant entry (used by the
+# gate's race-retry heuristic).
 _jarvis_parse_transcript() {
   local f="$1"
   _JARVIS_GATE_TC=0
   _JARVIS_GATE_MUT=0
   _JARVIS_GATE_LT=""
+  _JARVIS_GATE_LAST_CT=""
   _JARVIS_GATE_OK=0
 
   if [[ -z "$f" || ! -f "$f" ]]; then
@@ -90,16 +105,20 @@ _jarvis_parse_transcript() {
                        and (.name? // "") as $n
                        | $n == "Edit" or $n == "Write" or $n == "NotebookEdit" or $n == "Bash"))
           | length > 0) as $mut
-      | ([$m[] | select(.type? == "assistant")] | last) as $la
+      | ([$m[] | select(.type? == "assistant")] | last) as $very_last
+      | ([$m[] | select(.type? == "assistant")
+               | select(content_of | any(.type? == "text"))] | last) as $la
       | ((($la // {}) | content_of)
           | map(select(.type? == "text") | .text? // "")
           | join("\n")) as $lt
-      | "TC=\($tc)\nMUT=\(if $mut then 1 else 0 end)\nLT_BEGIN\n\($lt)\nLT_END"
+      | (($very_last // {}) | content_of | map(.type? // "") | tostring) as $last_ct
+      | "TC=\($tc)\nMUT=\(if $mut then 1 else 0 end)\nLAST_CT=\($last_ct)\nLT_BEGIN\n\($lt)\nLT_END"
     ' 2>/dev/null) || out=""
 
     if [[ -n "$out" ]]; then
       _JARVIS_GATE_TC=$(printf '%s\n' "$out" | sed -n 's/^TC=//p' | head -1)
       _JARVIS_GATE_MUT=$(printf '%s\n' "$out" | sed -n 's/^MUT=//p' | head -1)
+      _JARVIS_GATE_LAST_CT=$(printf '%s\n' "$out" | sed -n 's/^LAST_CT=//p' | head -1)
       _JARVIS_GATE_LT=$(printf '%s\n' "$out" | awk '/^LT_BEGIN$/{f=1;next} /^LT_END$/{f=0} f')
       [[ -z "$_JARVIS_GATE_TC" ]] && _JARVIS_GATE_TC=0
       [[ -z "$_JARVIS_GATE_MUT" ]] && _JARVIS_GATE_MUT=0
@@ -108,20 +127,36 @@ _jarvis_parse_transcript() {
     return
   fi
 
-  # --- Fallback: grep/sed (no jq) ---
+  # --- Fallback: grep/sed (no jq). Best-effort; LAST_CT and walk-back are
+  # approximated by inspecting the last assistant line's content-type substrings.
   _JARVIS_GATE_TC=$(printf '%s' "$capped" | grep -o '"type":"tool_use"' 2>/dev/null | wc -l | tr -d ' ')
   [[ -z "$_JARVIS_GATE_TC" ]] && _JARVIS_GATE_TC=0
   if printf '%s' "$capped" | grep -qE '"type":"tool_use","name":"(Edit|Write|NotebookEdit|Bash)"' 2>/dev/null; then
     _JARVIS_GATE_MUT=1
   fi
-  local last_a
-  last_a=$(printf '%s' "$capped" | grep '"type":"assistant"' 2>/dev/null | tail -1)
-  if [[ -n "$last_a" ]]; then
-    # Concatenate all "text":"..." values in the last assistant line.
-    _JARVIS_GATE_LT=$(printf '%s' "$last_a" \
+  # Walk-back: pick the last assistant line that has any "type":"text" in it.
+  local la_text
+  la_text=$(printf '%s' "$capped" | grep '"type":"assistant"' 2>/dev/null \
+            | grep '"type":"text"' | tail -1)
+  if [[ -n "$la_text" ]]; then
+    _JARVIS_GATE_LT=$(printf '%s' "$la_text" \
       | grep -oE '"text":"([^"\\]|\\.)*"' \
       | sed -E 's/^"text":"//; s/"$//' \
       | sed -E 's/\\"/"/g; s/\\n/ /g; s/\\t/ /g')
+  fi
+  # LAST_CT from the very-last assistant line, regardless of content type.
+  local very_last
+  very_last=$(printf '%s' "$capped" | grep '"type":"assistant"' 2>/dev/null | tail -1)
+  if [[ -n "$very_last" ]]; then
+    local parts=()
+    printf '%s' "$very_last" | grep -q '"type":"text"'      && parts+=('"text"')
+    printf '%s' "$very_last" | grep -q '"type":"tool_use"'  && parts+=('"tool_use"')
+    printf '%s' "$very_last" | grep -q '"type":"thinking"'  && parts+=('"thinking"')
+    if [[ ${#parts[@]} -gt 0 ]]; then
+      _JARVIS_GATE_LAST_CT="[$(IFS=,; echo "${parts[*]}")]"
+    else
+      _JARVIS_GATE_LAST_CT="[]"
+    fi
   fi
   _JARVIS_GATE_OK=1
 }
@@ -148,9 +183,9 @@ _jarvis_gate_debug() {
   local verdict="$1" rule="$2" age="$3"
   local lt_tail
   lt_tail=$(printf '%s' "${_JARVIS_GATE_LT:-}" | tail -c 80 | tr '\n' ' ')
-  printf 'jarvis-gate: verdict=%s rule=%s age=%ss ok=%s tc=%s mut=%s lt_tail=%q\n' \
+  printf 'jarvis-gate: verdict=%s rule=%s age=%ss ok=%s tc=%s mut=%s last_ct=%s lt_tail=%q\n' \
     "$verdict" "$rule" "$age" "${_JARVIS_GATE_OK:-0}" "${_JARVIS_GATE_TC:-0}" "${_JARVIS_GATE_MUT:-0}" \
-    "$lt_tail" >&2
+    "${_JARVIS_GATE_LAST_CT:-}" "$lt_tail" >&2
 }
 
 # --- Main entry: echo BLOCK or SKIP ---
@@ -163,9 +198,17 @@ gate_verdict() {
   age=$(_jarvis_session_age "$marker")
   _jarvis_parse_transcript "$transcript"
 
-  # Rule 1: last paragraph of last assistant message signals a pause for input
+  # Rule 1: last paragraph of the agent's final text signals a pause for input
   # (contains '?' or a deferring phrase) → SKIP regardless of mutations.
-  if [[ "$_JARVIS_GATE_OK" == "1" ]] && _jarvis_last_paragraph_signals_pause "$_JARVIS_GATE_LT"; then
+  # Prefer the stdin-provided text (race-free); fall back to transcript walk-back
+  # when the env var is empty (non-Claude-Code platforms, or unset for tests).
+  local _rule1_src=""
+  if [[ -n "${JARVIS_LAST_ASSISTANT_MESSAGE:-}" ]]; then
+    _rule1_src="$JARVIS_LAST_ASSISTANT_MESSAGE"
+  elif [[ "$_JARVIS_GATE_OK" == "1" ]]; then
+    _rule1_src="$_JARVIS_GATE_LT"
+  fi
+  if _jarvis_last_paragraph_signals_pause "$_rule1_src"; then
     _jarvis_gate_debug SKIP 1 "$age"
     echo SKIP
     return

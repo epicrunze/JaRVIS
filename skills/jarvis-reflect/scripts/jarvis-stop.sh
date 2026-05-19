@@ -71,13 +71,19 @@ if [[ -f "$JARVIS_DIR/.jarvis-disabled" ]]; then
   exit 0
 fi
 
-# --- Read session_id and transcript_path from stdin ---
+# --- Read session_id, transcript_path, and last_assistant_message from stdin ---
+# last_assistant_message is a Claude Code field — the agent's final text
+# verbatim. The gate uses it for Rule 1 (pause-signal check) to sidestep the
+# transcript-flush race entirely. Absent on non-Claude-Code platforms; gate
+# falls back to transcript walk-back in that case.
 if command -v jq &>/dev/null; then
   SESSION_ID=$(echo "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
   TRANSCRIPT_PATH=$(echo "$INPUT" | jq -r '.transcript_path // empty' 2>/dev/null)
+  JARVIS_LAST_ASSISTANT_MESSAGE=$(echo "$INPUT" | jq -r '.last_assistant_message // empty' 2>/dev/null)
 else
   SESSION_ID=$(echo "$INPUT" | grep -o '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
   TRANSCRIPT_PATH=$(echo "$INPUT" | grep -o '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"\([^"]*\)"$/\1/')
+  JARVIS_LAST_ASSISTANT_MESSAGE=""
 fi
 
 # --- Bail if no session-pending marker ---
@@ -88,7 +94,7 @@ fi
 
 # --- Heuristic gate: decide whether the reminder is warranted ---
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
-export TRANSCRIPT_PATH MARKER PROJECT_DIR
+export TRANSCRIPT_PATH MARKER PROJECT_DIR JARVIS_LAST_ASSISTANT_MESSAGE
 # shellcheck source=stop-gate.sh
 source "$SCRIPT_DIR/stop-gate.sh"
 verdict=$(gate_verdict)
