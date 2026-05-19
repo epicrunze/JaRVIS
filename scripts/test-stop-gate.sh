@@ -70,9 +70,9 @@ asst_text "All wired up. Let me know if you want changes." > "$F"
 v=$(run_gate "$F" "$(mk_marker 2 60)" "$(mk_proj 2)")
 expect "fx2 deferring phrase → SKIP r1" SKIP 1 "$v"
 
-# fx3: text + no signal, mutation in same transcript → BLOCK rule 2
+# fx3: text + no signal, FS mutation (Edit) in same transcript → BLOCK rule 2
 F=$WORK/fx3.jsonl
-{ asst_tool "Bash"; asst_text "Done."; } > "$F"
+{ asst_tool "Edit"; asst_text "Done."; } > "$F"
 v=$(run_gate "$F" "$(mk_marker 3 60)" "$(mk_proj 3)")
 expect "fx3 mutation + no signal → BLOCK r2" BLOCK 2 "$v"
 
@@ -86,13 +86,13 @@ expect "fx4 walk-back finds earlier ? (no mut) → SKIP r1" SKIP 1 "$v"
 # fx5: tool_use last, earlier text ends with '?', mutation present → SKIP rule 1
 # Walk-back must win over rule 2. This is the load-bearing case.
 F=$WORK/fx5.jsonl
-{ asst_text "Here's the design. Anything you want changed?"; asst_tool "Bash"; } > "$F"
+{ asst_text "Here's the design. Anything you want changed?"; asst_tool "Edit"; } > "$F"
 v=$(run_gate "$F" "$(mk_marker 5 60)" "$(mk_proj 5)")
 expect "fx5 walk-back finds ? with mutation → SKIP r1" SKIP 1 "$v"
 
 # fx6: tool_use last, no '?' anywhere, mutation → BLOCK rule 2
 F=$WORK/fx6.jsonl
-{ asst_text "Working on it."; asst_tool "Bash"; asst_tool "Bash"; } > "$F"
+{ asst_text "Working on it."; asst_tool "Edit"; asst_tool "Write"; } > "$F"
 v=$(run_gate "$F" "$(mk_marker 6 60)" "$(mk_proj 6)")
 expect "fx6 mutation, no signal, tool_use last → BLOCK r2" BLOCK 2 "$v"
 
@@ -115,7 +115,7 @@ expect "fx9 stdin last_assistant_message wins → SKIP r1" SKIP 1 "$v"
 # fx10: stdin without pause signal does NOT spuriously override a BLOCK
 # from rule 2 (mutation present, no signal).
 F=$WORK/fx10.jsonl
-{ asst_text "Working on it."; asst_tool "Bash"; } > "$F"
+{ asst_text "Working on it."; asst_tool "Edit"; } > "$F"
 v=$(run_gate "$F" "$(mk_marker 10 60)" "$(mk_proj 10)" "Done.")
 expect "fx10 stdin without ? + mutation → BLOCK r2" BLOCK 2 "$v"
 
@@ -123,6 +123,25 @@ expect "fx10 stdin without ? + mutation → BLOCK r2" BLOCK 2 "$v"
 # (proves Rule 1 works purely from stdin, no transcript needed).
 v=$(run_gate "$WORK/missing.jsonl" "$(mk_marker 11 60)" "$(mk_proj 11)" "Ready?")
 expect "fx11 stdin-only path, no transcript → SKIP r1" SKIP 1 "$v"
+
+# fx12: Bash-only (no FS mutation), no pause signal, working tree clean → SKIP r6.
+# Read-only Bash (ls/grep/git status/etc.) should not BLOCK. Working-tree check
+# is the ground truth for "did Bash actually mutate anything."
+F=$WORK/fx12.jsonl
+{ asst_tool "Bash"; asst_tool "Bash"; asst_text "Here's what I found."; } > "$F"
+v=$(run_gate "$F" "$(mk_marker 12 60)" "$(mk_proj 12)")
+expect "fx12 read-only Bash + clean tree → SKIP r6" SKIP 6 "$v"
+
+# fx13: Bash + working tree modified since marker → BLOCK r3.
+# The safety net: if Bash actually changed something on disk, rule 3 catches it.
+F=$WORK/fx13.jsonl
+{ asst_tool "Bash"; asst_text "Done."; } > "$F"
+P13=$(mk_proj 13)
+M13=$(mk_marker 13 120)
+# Create a file newer than the marker (the "tree modified" signal).
+touch "$P13/changed.txt"
+v=$(run_gate "$F" "$M13" "$P13")
+expect "fx13 Bash + tree modified → BLOCK r3" BLOCK 3 "$v"
 
 echo
 echo "──── $((TOTAL-FAIL))/$TOTAL passed ────"

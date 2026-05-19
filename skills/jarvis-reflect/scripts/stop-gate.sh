@@ -19,8 +19,9 @@
 #      phrase → SKIP. Source: $JARVIS_LAST_ASSISTANT_MESSAGE env var (passed
 #      by the Claude Code Stop hook stdin), falling back to walk-back over
 #      the transcript file if that env var is empty (other platforms).
-#   2. Transcript available, any mutating tool call (Edit/Write/NotebookEdit/Bash) → BLOCK
-#   3. Working tree modified since marker mtime → BLOCK
+#   2. Transcript available, any FS-mutating tool call (Edit/Write/NotebookEdit) → BLOCK
+#   3. Working tree modified since marker mtime → BLOCK (also catches Bash that
+#      actually changed the tree — see "Why Bash is excluded from rule 2" below)
 #   4. Transcript missing/empty AND session age >= 300s → BLOCK (Cursor/other fallback)
 #   5. Session age < 30s → SKIP
 #   6. Default → SKIP
@@ -30,6 +31,15 @@
 # transcript JSONL. Earlier polling-based mitigations were unreliable because
 # flush latency exceeded the polling window. The stdin field is delivered
 # verbatim with the hook invocation, sidestepping the race entirely.
+#
+# Why Bash is excluded from rule 2: many Bash invocations are read-only
+# (ls/grep/find/git status/etc.) and shouldn't trip the reminder. Treating any
+# Bash as mutating produced a false positive on read-mostly Q&A turns. The
+# working-tree check in rule 3 is the ground truth for "did Bash actually
+# change anything," so we let it carry that signal. Trade-off: Bash with
+# non-FS side effects (curl, git push, slack post) no longer blocks on its
+# own; in practice those are rare in read-mostly turns and an extra reminder
+# is cheaper than the false positive.
 #
 # All failure modes default to SKIP (bias toward silence).
 
@@ -103,7 +113,7 @@ _jarvis_parse_transcript() {
           | map(content_of | .[]?
               | select(.type? == "tool_use"
                        and (.name? // "") as $n
-                       | $n == "Edit" or $n == "Write" or $n == "NotebookEdit" or $n == "Bash"))
+                       | $n == "Edit" or $n == "Write" or $n == "NotebookEdit"))
           | length > 0) as $mut
       | ([$m[] | select(.type? == "assistant")] | last) as $very_last
       | ([$m[] | select(.type? == "assistant")
@@ -131,7 +141,7 @@ _jarvis_parse_transcript() {
   # approximated by inspecting the last assistant line's content-type substrings.
   _JARVIS_GATE_TC=$(printf '%s' "$capped" | grep -o '"type":"tool_use"' 2>/dev/null | wc -l | tr -d ' ')
   [[ -z "$_JARVIS_GATE_TC" ]] && _JARVIS_GATE_TC=0
-  if printf '%s' "$capped" | grep -qE '"type":"tool_use","name":"(Edit|Write|NotebookEdit|Bash)"' 2>/dev/null; then
+  if printf '%s' "$capped" | grep -qE '"type":"tool_use","name":"(Edit|Write|NotebookEdit)"' 2>/dev/null; then
     _JARVIS_GATE_MUT=1
   fi
   # Walk-back: pick the last assistant line that has any "type":"text" in it.
