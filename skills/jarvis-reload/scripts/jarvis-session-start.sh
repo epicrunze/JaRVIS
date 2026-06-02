@@ -157,7 +157,7 @@ if [[ -d "$JARVIS_DIR/memories" ]]; then
   for memfile in "$JARVIS_DIR/memories"/*.md; do
     [[ -f "$memfile" ]] || continue
     # Extract the ## Consolidated section
-    consolidated=$(awk '/^## Consolidated$/{found=1; next} /^## /{found=0} found' "$memfile" | head -50)
+    consolidated=$(awk '/^## Consolidated$/{found=1; next} /^## /{found=0} found' "$memfile" | head -50 || true)
     # Check if consolidated has real content (not just a placeholder)
     if [[ -n "$consolidated" ]] && ! echo "$consolidated" | grep -qi '^No consolidated .* yet'; then
       basename_no_ext=$(basename "$memfile" .md)
