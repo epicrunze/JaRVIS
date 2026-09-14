@@ -9,7 +9,7 @@ Check that your JaRVIS artifacts are well-formed and complete.
 
 ## Step 1: Resolve JaRVIS data directory
 
-Run `JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)` to set `JARVIS_DIR`.
+Run `bash <skill-path>/scripts/resolve-dir.sh`. It prints the absolute data directory; wherever `$JARVIS_DIR` appears below, paste that literal path. Do not wrap the call in `$(...)`: Claude Code never auto-approves command substitution, and shell state does not persist between Bash calls.
 
 If the resolved directory doesn't exist, inform the user they need to run `/jarvis-init` first, then stop.
 

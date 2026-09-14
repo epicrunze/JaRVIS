@@ -100,6 +100,23 @@ if [ -f "$_jarvis_migrate_script" ]; then
   fi
 fi
 
+# --- Permission-rule staleness nudge (Claude Code plugin installs only) ---
+# Old /jarvis-init templates wrote rules Claude Code no longer honors
+# (Write(...), `cd && git`, version-pinned plugin paths). If the project has a
+# settings.local.json whose JaRVIS rules differ from the canonical set, ask
+# the user to rerun /jarvis-init. Never edits settings; never fails the hook.
+_jarvis_perms_nudge=""
+_jarvis_perms_script="$SCRIPT_DIR/../../jarvis-init/scripts/jarvis-permissions.sh"
+_jarvis_project_dir="${CLAUDE_PROJECT_DIR:-$(pwd)}"
+if [[ -n "${CLAUDE_PLUGIN_ROOT:-}" && -f "$_jarvis_perms_script" \
+      && -f "$_jarvis_project_dir/.claude/settings.local.json" ]]; then
+  if ! bash "$_jarvis_perms_script" --check \
+        --project-dir "$_jarvis_project_dir" --jarvis-dir "$JARVIS_DIR" \
+        --plugin-root "$CLAUDE_PLUGIN_ROOT" >/dev/null 2>&1; then
+    _jarvis_perms_nudge="JaRVIS permission rules in .claude/settings.local.json are out of date (old Write / \`cd && git\` / version-pinned plugin paths). Run /jarvis-init to refresh them."
+  fi
+fi
+
 # --- Read hook input from stdin ---
 _jarvis_hook_input=$(cat 2>/dev/null || true)
 if command -v jq &>/dev/null; then
@@ -123,6 +140,9 @@ _project_slug=$(basename "$JARVIS_DIR")
 
 # --- Build context into a variable ---
 _ctx="$_jarvis_migration_block"
+if [[ -n "$_jarvis_perms_nudge" ]]; then
+  _ctx+="$_jarvis_perms_nudge"$'\n\n'
+fi
 _ctx+="<jarvis-session-context>"$'\n'
 
 # --- Framing instructions ---
@@ -190,8 +210,13 @@ _ctx+="Remember: run \`/jarvis-reflect\` after completing meaningful tasks to ca
 _ctx+="</jarvis-session-context>"
 
 # --- Output structured JSON ---
-_jarvis_output_json "$_ctx" "🤖 JaRVIS loaded for $_project_slug"
+_jarvis_sysmsg="🤖 JaRVIS loaded for $_project_slug"
+if [[ -n "$_jarvis_perms_nudge" ]]; then
+  _jarvis_sysmsg+=" — ⚠️ permission rules out of date, run /jarvis-init"
+fi
+_jarvis_output_json "$_ctx" "$_jarvis_sysmsg"
 
 # Cleanup temp vars
 unset _jarvis_hook_input _jarvis_session_id _jarvis_source
 unset _jarvis_migration_block _jarvis_migrate_script _jarvis_migrate_out _jarvis_migrate_rc 2>/dev/null
+unset _jarvis_perms_nudge _jarvis_perms_script _jarvis_project_dir _jarvis_sysmsg 2>/dev/null

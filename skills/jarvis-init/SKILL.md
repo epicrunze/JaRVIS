@@ -60,7 +60,7 @@ bash $SKILLS_DIR/jarvis-init/scripts/jarvis-init.sh [--migrate] [--project-dir <
 - Pass `--migrate` if the user agreed to migrate in Step 1.
 - Pass `--project-dir <path>` if the project root differs from `CLAUDE_PROJECT_DIR` / `pwd`.
 
-The script prints `ALREADY_EXISTS` followed by the path if already initialized — inform the user and suggest `/jarvis-reload`.
+The script prints `ALREADY_EXISTS` followed by the path if already initialized. Do not stop: note it for the report and continue with the platform setup below, which is idempotent and refreshes the permission rules to the current format.
 Otherwise it prints `MIGRATED` (if migration happened) followed by the resolved path.
 After successful migration, suggest the user remove the old `.jarvis/` directory at their convenience.
 
@@ -83,3 +83,7 @@ Use `<slug>` from Step 4 and `SKILLS_DIR` from Step 3 wherever the guide referen
 Confirm the setup is complete:
 
 > "JaRVIS is initialized. Your agent data is stored at `<resolved-path>` with its own git history. Run `/jarvis-reload` to begin your first session, then `/jarvis-reflect` after completing tasks to start building your identity."
+
+If Step 4 reported `ALREADY_EXISTS`, report instead:
+
+> "JaRVIS was already initialized at `<resolved-path>`. Permission rules and hooks were refreshed to the current format. Restart Claude Code for the new rules to take effect."

@@ -11,7 +11,7 @@ Reload your identity and memories mid-session. This is useful after reflections 
 
 ## Step 1: Resolve JaRVIS data directory
 
-Run `JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)` to set `JARVIS_DIR`.
+Run `bash <skill-path>/scripts/resolve-dir.sh`. It prints the absolute data directory; wherever `$JARVIS_DIR` appears below, paste that literal path. Do not wrap the call in `$(...)`: Claude Code never auto-approves command substitution, and shell state does not persist between Bash calls.
 
 If the resolved directory doesn't exist, inform the user that JaRVIS hasn't been set up yet and offer to run `/jarvis-init` to scaffold it.
 

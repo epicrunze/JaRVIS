@@ -74,84 +74,91 @@ echo ""
 printf "${BOLD}=== Part 2: Scan skills for tool invocations ===${RESET}\n"
 
 # Categories of operations we expect permissions for:
-# 1. Read/Write/Edit on JARVIS_DIR paths
-# 2. Bash(cd $JARVIS_DIR && git ...)
-# 3. Bash(bash .../validate.sh ...)
-# 4. Bash(bash .../search.sh ...)
-# 5. Bash(bash .../jarvis-init.sh ...)
+# 1. Read on JARVIS_DIR paths                → Read(...)
+# 2. Write/Edit on JARVIS_DIR paths          → Edit(...)   (Edit covers Write)
+# 3. git commits in JARVIS_DIR               → Bash(git -C ...)
+# 4. Any `bash <skill-path>/.../*.sh` script → Bash(bash <scripts-base>*)
 
 found_read=false
-found_write=false
-found_edit=false
+found_mutate=false
 found_git=false
-found_validate=false
-found_search=false
-found_init=false
+declare -A found_script=()
+SCRIPTS="resolve-dir.sh migrate.sh finalize-reflection.sh validate.sh search.sh jarvis-init.sh jarvis-permissions.sh"
 
-for skill_file in "$SKILLS_DIR"/*/SKILL.md; do
+for skill_file in "$SKILLS_DIR"/*/SKILL.md "$SKILLS_DIR"/*/references/platform-claude-code.md; do
   [[ -f "$skill_file" ]] || continue
-  skill_name=$(basename "$(dirname "$skill_file")")
   content=$(cat "$skill_file")
 
-  # Check for Read operations on JARVIS_DIR
   if echo "$content" | grep -qiE 'Read.*\$JARVIS_DIR|Read.*IDENTITY\.md|Read.*GROWTH\.md|Read.*journal|Read.*memories'; then
     found_read=true
   fi
-
-  # Check for Write operations on JARVIS_DIR
-  if echo "$content" | grep -qiE 'Write.*\$JARVIS_DIR|Write.*IDENTITY\.md|Write.*GROWTH\.md|Rewrite.*\$JARVIS_DIR|write.*journal|write.*memories'; then
-    found_write=true
+  if echo "$content" | grep -qiE '(Write|Edit|Rewrite).*(\$JARVIS_DIR|IDENTITY\.md|GROWTH\.md|journal|memories)'; then
+    found_mutate=true
   fi
-
-  # Check for Edit operations on JARVIS_DIR
-  if echo "$content" | grep -qiE 'Edit.*\$JARVIS_DIR|Edit.*IDENTITY\.md|Edit.*GROWTH\.md|edit.*journal|edit.*memories'; then
-    found_edit=true
-  fi
-
-  # Check for git operations
-  if echo "$content" | grep -qiE 'cd \$JARVIS_DIR && git|cd \$JARVIS_DIR.*git commit|git add.*git commit'; then
+  if echo "$content" | grep -qE 'git -C "?\$JARVIS_DIR"? (add|commit)'; then
     found_git=true
   fi
-
-  # Check for validate.sh
-  if echo "$content" | grep -qiE 'validate\.sh|jarvis-validate'; then
-    found_validate=true
-  fi
-
-  # Check for search.sh
-  if echo "$content" | grep -qiE 'search\.sh|jarvis-search'; then
-    found_search=true
-  fi
-
-  # Check for jarvis-init.sh
-  if echo "$content" | grep -qiE 'jarvis-init\.sh'; then
-    found_init=true
-  fi
+  for script in $SCRIPTS; do
+    if echo "$content" | grep -qE "bash [^ ]*/${script//./\\.}"; then
+      found_script[$script]=true
+    fi
+  done
 done
 
 # Verify each operation type has a matching permission
 check_perm() {
   local op_name="$1" found="$2" perm_pattern="$3"
   if [[ "$found" == "true" ]]; then
-    if echo "$declared_perms" | grep -q "$perm_pattern"; then
+    if echo "$declared_perms" | grep -qF "$perm_pattern"; then
       pass "$op_name operations covered by permission ($perm_pattern)"
     else
       fail "$op_name operations found in skills but NO matching permission" "Missing: $perm_pattern"
     fi
   else
-    if echo "$declared_perms" | grep -q "$perm_pattern"; then
+    if echo "$declared_perms" | grep -qF "$perm_pattern"; then
       warn "$op_name permission declared but no operations found in SKILL.md files"
     fi
   fi
 }
 
 check_perm "Read" "$found_read" "Read("
-check_perm "Write" "$found_write" "Write("
-check_perm "Edit" "$found_edit" "Edit("
-check_perm "Git" "$found_git" "Bash(cd"
-check_perm "validate.sh" "$found_validate" "validate.sh"
-check_perm "search.sh" "$found_search" "search.sh"
-check_perm "jarvis-init.sh" "$found_init" "jarvis-init.sh"
+check_perm "Write/Edit" "$found_mutate" "Edit("
+check_perm "Git" "$found_git" "Bash(git -C"
+for script in $SCRIPTS; do
+  check_perm "$script" "${found_script[$script]:-false}" "Bash(bash "
+done
+
+# Regression guards: rule forms Claude Code does not honor must not come back.
+if echo "$declared_perms" | grep -q '^Write('; then
+  fail "Write(...) rule declared" "Claude Code ignores Write rules; Edit(...) covers Write"
+else
+  pass "No Write(...) rule (Edit covers it)"
+fi
+if echo "$declared_perms" | grep -q '&&'; then
+  fail "Compound (&&) Bash rule declared" "Claude Code matches each subcommand separately"
+else
+  pass "No compound (&&) Bash rule"
+fi
+if echo "$declared_perms" | grep -qE 'jarvis/[0-9]+\.[0-9]+'; then
+  fail "Version-pinned plugin path in rule"
+else
+  pass "No version-pinned plugin path"
+fi
+
+# Skill instructions must not wrap scripts in command substitution: Claude Code
+# never auto-approves `$(...)`, so `JARVIS_DIR=$(bash .../resolve-dir.sh)` always prompts.
+if grep -rqE '\$\(bash ' "$SKILLS_DIR"/*/SKILL.md; then
+  fail "SKILL.md uses command substitution around a script" "Run the script plainly and reuse its printed output"
+else
+  pass "No \$(bash ...) command substitution in SKILL.md files"
+fi
+
+# The skills must not use `cd $JARVIS_DIR && git` (never matches a single rule).
+if grep -rqE 'cd "?\$JARVIS_DIR"? *&& *git' "$SKILLS_DIR"/*/SKILL.md; then
+  fail "SKILL.md uses 'cd \$JARVIS_DIR && git'" "Use git -C \"\$JARVIS_DIR\" instead"
+else
+  pass "No 'cd \$JARVIS_DIR && git' in SKILL.md files"
+fi
 
 # ============================================================
 # Part 3: Check for undocumented operations
@@ -169,7 +176,7 @@ for skill_file in "$SKILLS_DIR"/*/SKILL.md; do
   # Look for Bash commands with JARVIS_DIR that aren't git, validate, search, or init
   while IFS= read -r line; do
     # Skip known patterns
-    if echo "$line" | grep -qiE 'git (add|commit|log|diff|status)|validate\.sh|search\.sh|jarvis-init\.sh|resolve-dir\.sh|source'; then
+    if echo "$line" | grep -qiE 'git (-C "?\$JARVIS_DIR"? )?(add|commit|log|diff|status)|validate\.sh|search\.sh|jarvis-init\.sh|jarvis-permissions\.sh|resolve-dir\.sh|migrate\.sh|finalize-reflection\.sh|source'; then
       continue
     fi
     # Flag potential undocumented Bash operations
@@ -228,13 +235,10 @@ if [[ "${1:-}" == "--e2e" ]]; then
       local prompt="$1"
       (cd "$TEMP_PROJECT" && timeout 120 claude -p \
         --allowedTools \
-        "Read($HOME/.jarvis/projects/$SLUG/**)" \
-        "Edit($HOME/.jarvis/projects/$SLUG/**)" \
-        "Write($HOME/.jarvis/projects/$SLUG/**)" \
-        "Bash(cd $HOME/.jarvis/projects/$SLUG && git *)" \
-        "Bash(bash $SKILLS_PATH/jarvis-validate/scripts/validate.sh *)" \
-        "Bash(bash $SKILLS_PATH/jarvis-search/scripts/search.sh *)" \
-        "Bash(bash $SKILLS_PATH/jarvis-init/scripts/jarvis-init.sh *)" \
+        "Read(~/.jarvis/projects/$SLUG/**)" \
+        "Edit(~/.jarvis/projects/$SLUG/**)" \
+        "Bash(git -C $HOME/.jarvis/projects/$SLUG *)" \
+        "Bash(bash $SKILLS_PATH/jarvis-*)" \
         -- "$prompt" 2>&1)
     }
 

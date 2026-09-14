@@ -20,13 +20,14 @@ JaRVIS (Journaling As Recurrent Versioned Identity Sculpting) is a set of agent 
   - `jarvis-migrate/` — Apply pending data-dir schema migrations; runs automatically from the SessionStart hook and from `/jarvis-reflect` (via `finalize-reflection.sh`) and `/jarvis-reload`
 - `skills/*/scripts/resolve-dir.sh` — Shared path resolver (sets `JARVIS_DIR`); each skill carries its own copy
 - `skills/jarvis-init/scripts/jarvis-init.sh` — Init automation script (scaffold, migrate, git init)
+- `skills/jarvis-init/scripts/jarvis-permissions.sh` — Idempotent installer for the JaRVIS allow rules in `.claude/settings.local.json` (Claude Code). Removes stale JaRVIS rules (`Write(...)`, `cd && git`, version-pinned plugin paths) and writes the canonical four: `Read`/`Edit` on the data dir, `Bash(git -C <data-dir> *)`, and one `Bash(bash <plugin-base>/*)` (or `<skills-dir>/jarvis-*`) rule covering every skill script. `--check` mode is used by the SessionStart hook to nudge users to rerun `/jarvis-init`. Tested by `scripts/test-permissions.sh`.
 - `skills/jarvis-init/references/scaffolding.md` — Templates for bootstrapping a new JaRVIS data directory
 - `skills/jarvis-init/references/platform-*.md` — Per-platform setup guides (Claude Code, Cursor, Copilot, OpenCode, Antigravity, Other)
 - `skills/jarvis-init/references/copilot-hooks.json.example` — Template for Copilot hook configuration
 - `skills/jarvis-init/references/opencode-plugin.ts.example` — Template for OpenCode session hooks plugin
 - `skills/jarvis-init/references/opencode-instructions.example` — Instruction snippet for OpenCode projects
 - `skills/jarvis-reflect/references/reflection-guide.md` — Quality standards for writing reflections (specific over generic)
-- `skills/jarvis-reload/scripts/jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start
+- `skills/jarvis-reload/scripts/jarvis-session-start.sh` — Loads identity, memories, and last journal entry at session start; on plugin installs also runs `jarvis-permissions.sh --check` and prepends a one-line nudge when the project's permission rules are stale. Tested by `scripts/test-session-start.sh`.
 - `skills/jarvis-reload/scripts/jarvis-session-start-cursor.sh` — Cursor variant of session start hook
 - `skills/jarvis-reload/scripts/jarvis-session-start-copilot.sh` — Copilot variant of session start hook (marker tracking only)
 - `skills/jarvis-reflect/scripts/jarvis-stop.sh` — Stop hook that reminds to reflect before ending session
@@ -55,7 +56,7 @@ Skills are installed by copying skill folders into the platform's skills directo
 
 ## Architecture
 
-Setup is a one-time `/jarvis-init` to scaffold the data directory at `~/.jarvis/projects/<slug>/`. Session context is loaded automatically via the `SessionStart` hook (identity, memories, last journal entry). The ongoing workflow is a loop: work → `/jarvis-reflect` → work → `/jarvis-reflect` → ... → `/jarvis-identity` (every 5 reflections). Use `/jarvis-reload` mid-session to reload context after reflections update memories. Use `/jarvis-validate` to check JaRVIS artifacts for format correctness. Use `/jarvis-search` to find past entries by keyword, tag, date range, or section.
+Setup is `/jarvis-init`, which scaffolds the data directory at `~/.jarvis/projects/<slug>/` and is safe to rerun: on an existing data dir it skips scaffolding and refreshes permission rules and hooks. Skills commit to the data dir with `git -C "$JARVIS_DIR" ...` (never `cd && git`), because Claude Code matches each `&&` subcommand against allow rules separately. Session context is loaded automatically via the `SessionStart` hook (identity, memories, last journal entry). The ongoing workflow is a loop: work → `/jarvis-reflect` → work → `/jarvis-reflect` → ... → `/jarvis-identity` (every 5 reflections). Use `/jarvis-reload` mid-session to reload context after reflections update memories. Use `/jarvis-validate` to check JaRVIS artifacts for format correctness. Use `/jarvis-search` to find past entries by keyword, tag, date range, or section.
 
 Data-directory schema changes are handled by the `jarvis-migrate` system: a stamp file (`<data-dir>/.jarvis-data-version`) tracks the current version, and forward-only migrations under `skills/jarvis-migrate/scripts/migrations/` are applied automatically by the SessionStart hook (and as a safety net by `/jarvis-reflect` and `/jarvis-reload`).
 

@@ -9,7 +9,7 @@ Time to sculpt your identity based on what you've learned.
 
 ## Step 1: Read current state
 
-Run `JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)` to set `JARVIS_DIR`.
+Run `bash <skill-path>/scripts/resolve-dir.sh`. It prints the absolute data directory; wherever `$JARVIS_DIR` appears below, paste that literal path. Do not wrap the call in `$(...)`: Claude Code never auto-approves command substitution, and shell state does not persist between Bash calls.
 
 Read `$JARVIS_DIR/IDENTITY.md` — this is who you are right now. Note the current version number.
 
@@ -59,7 +59,7 @@ Rewrite `$JARVIS_DIR/IDENTITY.md` with:
 Auto-commit the identity evolution to the data directory's git repo:
 
 ```bash
-cd $JARVIS_DIR && git add -A && git commit -m "identity: v<new-version> - <brief-summary>"
+git -C "$JARVIS_DIR" add -A && git -C "$JARVIS_DIR" commit -m "identity: v<new-version> - <brief-summary>"
 ```
 
 ## Step 5: Report

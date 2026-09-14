@@ -12,8 +12,10 @@ This skill is normally invoked automatically by the SessionStart hook, by `/jarv
 ## Step 1: Resolve the data directory
 
 ```bash
-JARVIS_DIR=$(bash <skill-path>/scripts/resolve-dir.sh)
+bash <skill-path>/scripts/resolve-dir.sh
 ```
+
+It prints the absolute data directory; wherever `$JARVIS_DIR` appears below, paste that literal path. Do not wrap the call in `$(...)`: Claude Code never auto-approves command substitution.
 
 If the resolved directory doesn't exist, tell the user to run `/jarvis-init` first, then stop.
 

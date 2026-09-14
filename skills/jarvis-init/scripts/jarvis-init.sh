@@ -4,7 +4,8 @@
 #
 # Handles steps 1-4 of /jarvis-init:
 #   1. Resolve JARVIS_DIR via resolve-dir.sh
-#   2. Check if already initialized (exit 0 if so)
+#   2. Check if already initialized (print ALREADY_EXISTS + path, exit 0;
+#      the skill still re-runs platform setup so permissions get refreshed)
 #   3. Optionally migrate from old .jarvis/ layout
 #   4. Scaffold directory structure + template files
 #   5. git init + initial commit

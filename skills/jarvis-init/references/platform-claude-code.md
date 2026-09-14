@@ -39,7 +39,18 @@ When JaRVIS is installed by **copying skills** into `.claude/skills/` or `~/.cla
 
 ## Permissions
 
-Read `.claude/settings.local.json` in the project root (create it if it doesn't exist). Merge the following into the `permissions.allow` array, preserving any existing rules. Use the project-specific path (`~/.jarvis/projects/<slug>/`) resolved from Step 4, not the global `~/.jarvis/` path:
+Run the permissions script to install (or refresh) the JaRVIS allow rules in `.claude/settings.local.json`. It is idempotent: it removes any JaRVIS rules from earlier versions (including `Write(...)`, `cd ... && git ...`, and version-pinned plugin paths) and writes the current set, preserving every other rule, hook, and setting in the file.
+
+- Plugin install (`$CLAUDE_PLUGIN_ROOT` set):
+  ```bash
+  bash $SKILLS_DIR/jarvis-init/scripts/jarvis-permissions.sh --project-dir <project-root> --jarvis-dir <resolved-path> --plugin-root "$CLAUDE_PLUGIN_ROOT"
+  ```
+- Copied install (`.claude/skills/` or `~/.claude/skills/`):
+  ```bash
+  bash $SKILLS_DIR/jarvis-init/scripts/jarvis-permissions.sh --project-dir <project-root> --jarvis-dir <resolved-path> --skills-dir "$SKILLS_DIR"
+  ```
+
+`<resolved-path>` is the absolute data directory printed by `jarvis-init.sh` in Step 4. The script prints `UPDATED` or `UNCHANGED`. The resulting rules are:
 
 ```json
 {
@@ -47,17 +58,17 @@ Read `.claude/settings.local.json` in the project root (create it if it doesn't 
     "allow": [
       "Read(~/.jarvis/projects/<slug>/**)",
       "Edit(~/.jarvis/projects/<slug>/**)",
-      "Write(~/.jarvis/projects/<slug>/**)",
-      "Bash(cd ~/.jarvis/projects/<slug> && git *)",
-      "Bash(bash $SKILLS_DIR/jarvis-validate/scripts/validate.sh *)",
-      "Bash(bash $SKILLS_DIR/jarvis-search/scripts/search.sh *)",
-      "Bash(bash $SKILLS_DIR/jarvis-init/scripts/jarvis-init.sh *)"
+      "Bash(git -C <abs-jarvis-dir> *)",
+      "Bash(bash <scripts-base>*)"
     ]
   }
 }
 ```
 
-Use the `SKILLS_DIR` resolved in Step 3 of the init skill for all three script paths.
+Notes on the rule forms (Claude Code semantics):
+- `Edit(...)` covers Write and NotebookEdit; `Write(...)` rules are ignored with a startup warning.
+- Compound commands are checked one subcommand at a time, so `cd X && git ...` never matches a single rule. Skills use `git -C "$JARVIS_DIR" ...` instead.
+- `<scripts-base>` is the plugin cache dir without the version segment (`.../jarvis-marketplace/jarvis/`) so rules survive upgrades, or `<SKILLS_DIR>/jarvis-` for copied installs. This one rule covers every JaRVIS script, including `resolve-dir.sh`, `migrate.sh`, and `finalize-reflection.sh`.
 
 ## Instruction file
 
